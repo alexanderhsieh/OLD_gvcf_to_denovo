@@ -23,6 +23,7 @@ workflow gvcf_to_denovo {
   Int pb_min_alt
   Int par_max_alt
   Int par_min_dp
+  String output_suffix
 
 
   parameter_meta{
@@ -73,7 +74,8 @@ task call_denovos {
   Int pb_min_alt
   Int par_max_alt
   Int par_min_dp
-  String? output_file = "${sample_id}.denovo.raw.txt"
+  String output_suffix
+  String output_file = "${sample_id}${output_suffix}"
 
   command {
     python -u ${script} -s ${sample_id} -m ${sample_map} -p ${ped} -x ${pb_min_alt} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
