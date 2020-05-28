@@ -20,7 +20,7 @@ workflow gvcf_to_denovo {
   
   File script
   String sample_id 
-  File sample_map
+  Array[File] sample_map
   File ped
   Int pb_min_alt
   Int par_max_alt
@@ -73,7 +73,7 @@ workflow gvcf_to_denovo {
 task call_denovos {
   File script
   String sample_id
-  File sample_map
+  Array[File] sample_map
   File ped
   Int pb_min_alt
   Int par_max_alt
