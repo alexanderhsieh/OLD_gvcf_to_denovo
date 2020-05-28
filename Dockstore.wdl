@@ -1,6 +1,8 @@
 ## Copyright Broad Institute, 2020
 ## This workflow calls de novo SNVs using sample gVCF + paternal/maternal gVCFs
 ## Requires (1) sample id, (2) sample map (picard), (3) pedigree file (plink), (4) options for de novo calling criteria
+## 
+##  NOTE: uses docker: "gatksv/sv-base-mini:cbb1fc" to borrow samtools, tabix functionality
 ##
 ## TESTED: 
 ## Versions of other tools on this image at the time of testing:
@@ -53,6 +55,7 @@ workflow gvcf_to_denovo {
     output_suffix = output_suffix
   }
 
+
   #Outputs a .txt file containing de novo SNVs
   output {
     File denovos = call_denovos.outfile
@@ -80,6 +83,10 @@ task call_denovos {
 
   command {
     python -u ${script} -s ${sample_id} -m ${sample_map} -p ${ped} -x ${pb_min_alt} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
+  }
+
+  runtime {
+    docker: "gatksv/sv-base-mini:cbb1fc"
   }
 
   output {
