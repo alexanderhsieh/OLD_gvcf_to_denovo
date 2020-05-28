@@ -1,0 +1,11 @@
+{
+  "gvcf_to_denovo.script": "/Users/ahsieh/Documents/talkowski_lab/projects/gvcf_to_denovo/gvcf_to_denovo.py",
+  "gvcf_to_denovo.sample_id": "11003-p1",
+  "gvcf_to_denovo.par_min_dp": "10",
+  "gvcf_to_denovo.sample_map": "/Users/ahsieh/Documents/talkowski_lab/projects/gvcf_to_denovo/test.sample_map",
+  "gvcf_to_denovo.output_file": "11003-p1.denovo.raw.txt",
+  "gvcf_to_denovo.par_max_alt": "0",
+  "gvcf_to_denovo.pb_min_alt": "6",
+  "gvcf_to_denovo.ped": "/Users/ahsieh/Documents/talkowski_lab/projects/gvcf_to_denovo/test.ped"
+}
+
