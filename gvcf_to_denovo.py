@@ -197,6 +197,22 @@ with open(ped, 'r') as pedf:
 bufsize=1
 outf = open(output_file, 'w', buffering=bufsize)
 
+
+##
+## IF NOT PROBAND OR SIBLING, WRITE ERROR MESSAGE AND EXIT
+##
+if '0' in pedd[sample_id]['fa'] or '0' in pedd[sample_id]['mo']:
+  err_msg = '## ERROR! PARENT SAMPLE, UNABLE TO CALL DE NOVOS'
+  
+  print(err_msg)
+  
+  outf.write(err_msg)
+  outf.close()
+  
+  sys.exit()
+
+
+
 ## get gvcf paths
 sample_gvcf = pathd[sample_id]
 fa_gvcf = pathd[pedd[sample_id]['fa']]
