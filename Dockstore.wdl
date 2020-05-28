@@ -87,6 +87,8 @@ task call_denovos {
 
   runtime {
     docker: "gatksv/sv-base-mini:cbb1fc"
+    docker: "us.gcr.io/broad-gotc-prod/python:2.7"
+
   }
 
   output {
