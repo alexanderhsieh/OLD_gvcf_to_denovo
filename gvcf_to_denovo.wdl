@@ -34,7 +34,7 @@ workflow gvcf_to_denovo {
     pb_min_alt: "proband; minimum number of reads supporting the variant allele"
     par_max_alt: "parent; maximum number of reads supporting the variant allele"
     par_min_dp: "parent; minimum read depth at the variant position"
-    output_file: "output de novo SNVs file name"
+    output_suffix: "output de novo SNVs filename suffix"
   }
   meta{
     author: "Alex Hsieh"
@@ -49,7 +49,8 @@ workflow gvcf_to_denovo {
       ped = ped,
       pb_min_alt = pb_min_alt,
       par_max_alt = par_max_alt,
-      par_min_dp = par_min_dp
+      par_min_dp = par_min_dp,
+      output_suffix = output_suffix
   }
 
   #Outputs a .txt file containing de novo SNVs
