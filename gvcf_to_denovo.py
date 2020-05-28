@@ -201,7 +201,7 @@ outf = open(output_file, 'w', buffering=bufsize)
 ##
 ## IF NOT PROBAND OR SIBLING, WRITE ERROR MESSAGE AND EXIT
 ##
-if '0' in pedd[sample_id]['fa'] or '0' in pedd[sample_id]['mo']:
+if pedd[sample_id]['fa'] == '0' or pedd[sample_id]['mo'] == '0':
   err_msg = '## ERROR! PARENT SAMPLE, UNABLE TO CALL DE NOVOS'
   
   print(err_msg)
