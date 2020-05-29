@@ -211,7 +211,7 @@ i = 0
 
 
 ## iterate over proband gVCF
-with gzip.open(sample_gvcf, 'r') as f:
+with gzip.open(sample_gvcf, 'rb') as f:
   with io.TextIOWrapper(f, encoding='utf-8') as decodef:  
     for line in decodef:
 
