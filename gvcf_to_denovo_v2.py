@@ -68,11 +68,11 @@ output_file = options.output_file
 ####################################################################################################
 def parse_parent(gvcf, region, chr, pos, ref, alt):
 
-  tmp_head = subprocess.Popen(('tabix', '-H', gvcf), shell=True, stdout=subprocess.PIPE) # get header lines
-  tmp_cols = subprocess.check_output(('grep', '^#CHROM'), shell=True, stdin=tmp_head.stdout).strip().split('\t') # parse column names
+  tmp_head = subprocess.Popen(('tabix', '-H', gvcf), shell=True, stdout=subprocess.PIPE, encoding='utf8') # get header lines
+  tmp_cols = subprocess.check_output(('grep', '^#CHROM'), shell=True, stdin=tmp_head.stdout, encoding='utf8').strip().split('\t') # parse column names
   tmp_head.wait()
 
-  tmp = subprocess.check_output(['tabix',gvcf, region], shell=True).strip().split('\n')
+  tmp = subprocess.check_output(['tabix',gvcf, region], shell=True, encoding='utf8').strip().split('\n')
 
   # intialize values
   # handles the case of empty tabix return
@@ -194,7 +194,7 @@ if pedd[sample_id]['fa'] == '0' or pedd[sample_id]['mo'] == '0':
 
 
 cmd2 = 'zcat < %s | grep -v "#"| wc -l'%(sample_gvcf)
-tot = int(subprocess.check_output(cmd2, shell=True).strip().split(' ')[0])
+tot = int(subprocess.check_output(cmd2, shell=True, encoding='utf8').strip().split(' ')[0])
 print('## TOTAL VARIANT LINES: %s'%(str(tot)))
 
 
