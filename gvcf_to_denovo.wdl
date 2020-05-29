@@ -48,22 +48,11 @@ workflow gvcf_to_denovo {
     in_map = sample_map
   }
 
-  #call call_denovos {
-  #  input:
-  #  script = script,
-  #  sample_id = sample_id,
-  #  sample_map = sample_map,
-  #  ped = ped,
-  #  pb_min_alt = pb_min_alt,
-  #  par_max_alt = par_max_alt,
-  #  par_min_dp = par_min_dp,
-  #  output_suffix = output_suffix
-  #}
 
 
   #Outputs a .txt file containing de novo SNVs
   output {
-    #File denovos = call_denovos.outfile
+    File localout = localize_sample_map.outfile
       
   }
 
@@ -82,6 +71,18 @@ task localize_sample_map {
 
     echo ${sep=" " in_map}
 
+    echo ${sep=" " in_map} > tmp.stdout.txt
+
+  }
+
+  runtime {
+    docker: "gatksv/sv-base-mini:cbb1fc"
+    docker: "us.gcr.io/broad-gotc-prod/python:2.7"
+
+  }
+
+  output {
+    File outfile = "tmp.stdout.txt"
   }
 }
 
