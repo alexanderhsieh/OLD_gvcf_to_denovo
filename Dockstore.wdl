@@ -20,7 +20,7 @@ workflow gvcf_to_denovo {
   
   File script
   String sample_id 
-  Array[File] sample_map
+  Array[String] sample_map
   File ped
   Int pb_min_alt
   Int par_max_alt
@@ -43,16 +43,22 @@ workflow gvcf_to_denovo {
     email: "ahsieh@broadinstitute.org"
   }
 
-  call localize_sample_map {
+  call call_denovos {
     input:
-    in_map = sample_map
+    script = script,
+    sample_id = sample_id,
+    sample_map = sample_map,
+    ped = ped,
+    pb_min_alt = pb_min_alt,
+    par_max_alt = par_max_alt,
+    par_min_dp = par_min_dp,
+    output_suffix = output_suffix
   }
-
 
 
   #Outputs a .txt file containing de novo SNVs
   output {
-    File localout = localize_sample_map.outfile
+    File denovos = call_denovos.outfile
       
   }
 
@@ -63,29 +69,9 @@ workflow gvcf_to_denovo {
 #Task Definitions
 ###########################################################################
 
-#Generates new sample map using localized file paths
-task localize_sample_map {
-  Array[File] in_map
 
-  command{
-
-    echo ${sep=" " in_map}
-
-    echo ${sep=" " in_map} > tmp.stdout.txt
-
-  }
-
-  runtime {
-    docker: "us.gcr.io/broad-gotc-prod/python:2.7"
-
-  }
-
-  output {
-    File outfile = "tmp.stdout.txt"
-  }
-}
-
-#Scores variants in dnSNVs file
+#Calls denovos from proband gvcf + parent paths
+# NOTE: currently runs gsutil cp to localize proband gvcf
 task call_denovos {
   File script
   String sample_id

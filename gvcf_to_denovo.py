@@ -160,6 +160,22 @@ def parse_parent(gvcf, region, chr, pos, ref, alt):
   return(outd)
 
 ####################################################################################################
+## Function that, given google bucket path and temporary name, run gsutil cp to localize file
+## returns new local path
+####################################################################################################
+def gsutil_localize(gvcf, tmpname):
+  localpath = './' + tmpname
+
+  print('## running gsutil cp %s %s ...'%(gvcf, localpath))
+
+  cmd = 'gsutil cp %s %s'%(gvcf, localpath)
+  subprocess.call(cmd, shell=True)
+
+  print ('## done ')
+
+  return(localpath)
+
+####################################################################################################
 ## read sample map and create dictionary
 ####################################################################################################
 print('')
@@ -218,8 +234,12 @@ sample_gvcf = pathd[sample_id]
 fa_gvcf = pathd[pedd[sample_id]['fa']]
 mo_gvcf = pathd[pedd[sample_id]['mo']]
 
+## try gsutil cp commands
+tmpname = 'tmpproband'
+local_sample_gvcf = gsutil_localize(sample_gvcf, tmpname) # get new localized file path
 
 
+print('## COUNTING TOTAL VARIANT LINES')
 cmd2 = 'zcat < %s | grep -v "#"| wc -l'%(sample_gvcf)
 tot = int(subprocess.check_output(cmd2, shell=True).strip().split(' ')[0])
 print('## TOTAL VARIANT LINES: %s'%(str(tot)))
@@ -237,8 +257,8 @@ i = 0
 
 
 ## iterate over proband gVCF
-with gzip.open(sample_gvcf, 'r') as f:  
-#with open(tmp_var_only, 'r') as f:  
+#with gzip.open(sample_gvcf, 'r') as f:  
+with gzip.open(local_sample_gvcf, 'r') as f:  
   for line in f:
 
 
@@ -358,7 +378,7 @@ with gzip.open(sample_gvcf, 'r') as f:
 
 outf.close()
 
-
-
-
+print('## REMOVING LOCALIZED FILES')
+subprocess.call('rm -rf ./%s'%(tmpname), shell=True)
+print('## DONE')
 
