@@ -60,7 +60,7 @@ parser.add_option('-o', '--output', dest='output_file',help='output tab-separate
 (options, args) = parser.parse_args()
 
 ## check all arguments present
-if (options.sample_id == None options.sample_gvcf == None or options.sample_map == None or options.ped == None or options.pb_min_alt == None or options.par_max_alt == None or options.par_min_dp == None):
+if (options.sample_id == None or options.sample_gvcf == None or options.sample_map == None or options.ped == None or options.pb_min_alt == None or options.par_max_alt == None or options.par_min_dp == None):
 	print '\n' + '## ERROR: missing arguments' + '\n'
 	parser.print_help()
 	print '\n'
