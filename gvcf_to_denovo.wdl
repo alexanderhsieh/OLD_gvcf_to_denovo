@@ -76,7 +76,6 @@ task localize_sample_map {
   }
 
   runtime {
-    docker: "gatksv/sv-base-mini:cbb1fc"
     docker: "us.gcr.io/broad-gotc-prod/python:2.7"
 
   }
