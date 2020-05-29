@@ -27,6 +27,7 @@ from optparse import OptionParser
 import subprocess
 import os
 import gzip
+import io
 
 ####################################################################################################
 ## handle arguments
@@ -210,120 +211,121 @@ i = 0
 
 
 ## iterate over proband gVCF
-with gzip.open(sample_gvcf, 'r') as f:  
-  for line in f:
+with gzip.open(sample_gvcf, 'r') as f:
+  with io.TextIOWrapper(f, encoding='utf-8') as decodef:  
+    for line in decodef:
 
 
-    tmp = line.encode('utf-8').strip().split('\t')
+      tmp = line.strip().split('\t')
 
-    ## handle vcf header information
-    if line.encode('utf-8').startswith('##'):
-      continue
-    
-    ## handle vcf header containing column information
-    if line.encode('utf-8').startswith('#CHROM'):
-      idx = {col:index for index, col in enumerate(tmp)}
+      ## handle vcf header information
+      if line.startswith('##'):
+        continue
+      
+      ## handle vcf header containing column information
+      if line.startswith('#CHROM'):
+        idx = {col:index for index, col in enumerate(tmp)}
 
-    ## handle variant lines
-    else:
-      i += 1
-      if i%1000 == 0:
-        print('## %d/%d lines processed ... '%(i, tot))
+      ## handle variant lines
+      else:
+        i += 1
+        if i%1000 == 0:
+          print('## %d/%d lines processed ... '%(i, tot))
 
-      ## initialize values to avoid iteration bugs
-      chr, pos, ref, alt = '', '', '',''
-      region = ''
-      info = ''
-      fmt, gt = [], []
-      gtd = {}
-
-
-      ## ignore non-variant blocks 
-      if not 'END=' in line.encode('utf-8').strip():
-        
-        ## get proband variant information
-        chr, pos, ref = tmp[idx['#CHROM']], tmp[idx['POS']], tmp[idx['REF']]
-
-        ## parse alt allele
-        alt = tmp[idx['ALT']].strip(',<NON_REF>')
-
-        
-        ## how to handle multiallelic sites? e.g. chr1    1646352 .       A       C,G,<NON_REF>
-        ## iterate over all alternate alleles present in ALT
-        for a in alt.split(','):
+        ## initialize values to avoid iteration bugs
+        chr, pos, ref, alt = '', '', '',''
+        region = ''
+        info = ''
+        fmt, gt = [], []
+        gtd = {}
 
 
-          if not a == '*': # ignore point deletions for now; messy when matching alleles with parents
-            if len(ref) == 1 and len(a) == 1: # ignore indels for now;
-              
-              
-              # Get index of current alternate allele
-              pb_altidx = alt.split(',').index(a) + 1 
+        ## ignore non-variant blocks 
+        if not 'END=' in line.strip():
+          
+          ## get proband variant information
+          chr, pos, ref = tmp[idx['#CHROM']], tmp[idx['POS']], tmp[idx['REF']]
 
-              # get region for tabixing parents
-              region = chr + ':' + pos + '-' + pos
+          ## parse alt allele
+          alt = tmp[idx['ALT']].strip(',<NON_REF>')
 
-              # save INFO field
-              info = tmp[idx['INFO']]
-
-              # create dictionary of FORMAT:GT mapping
-              fmt = tmp[idx['FORMAT']].split(':')
-              gt = tmp[-1].split(':') ## ASSUMES THAT SAMPLE GENOTYPE INFORMATION IS IN THE LAST COLUMN; didn't use ID since column ID differs from sample id....
-
-              gtd = dict(zip(fmt, gt)) # e.g. {'GT': '0/1', 'AD': '5,7,0', 'GQ': '99', 'PL': '157,0,104,172,125,297', 'SB': '5,0,7,0', 'DP': '12'}
-              
-              print(region)
-              #print(gtd)
+          
+          ## how to handle multiallelic sites? e.g. chr1    1646352 .       A       C,G,<NON_REF>
+          ## iterate over all alternate alleles present in ALT
+          for a in alt.split(','):
 
 
-              if not gtd['GT'] == './.': ## ignore sites with missing genotypes
-                if ('AD'in gtd) and ('DP' in gtd): # ignore sites with no AD or DP information
+            if not a == '*': # ignore point deletions for now; messy when matching alleles with parents
+              if len(ref) == 1 and len(a) == 1: # ignore indels for now;
+                
+                
+                # Get index of current alternate allele
+                pb_altidx = alt.split(',').index(a) + 1 
 
-                  ## parse strand-specific allelic depth information
-                  adf = gtd['F1R2']
-                  adr = gtd['F2R1']
+                # get region for tabixing parents
+                region = chr + ':' + pos + '-' + pos
 
-                  adfref = adf.split(',')[0]
-                  adrref = adr.split(',')[0]
+                # save INFO field
+                info = tmp[idx['INFO']]
 
-                  adfalt = adf.split(',')[pb_altidx]
-                  adralt = adr.split(',')[pb_altidx]
+                # create dictionary of FORMAT:GT mapping
+                fmt = tmp[idx['FORMAT']].split(':')
+                gt = tmp[-1].split(':') ## ASSUMES THAT SAMPLE GENOTYPE INFORMATION IS IN THE LAST COLUMN; didn't use ID since column ID differs from sample id....
 
-                  pb_refdp = int(gtd['AD'].split(',')[0])
-                  pb_altdp = int(gtd['AD'].split(',')[pb_altidx])
-                  pb_dp = int(gtd['DP'])
+                gtd = dict(zip(fmt, gt)) # e.g. {'GT': '0/1', 'AD': '5,7,0', 'GQ': '99', 'PL': '157,0,104,172,125,297', 'SB': '5,0,7,0', 'DP': '12'}
+                
+                print(region)
+                #print(gtd)
 
 
-                  ## parse father gvcf using tabix
-                  fa_d = parse_parent(fa_gvcf, region, chr, pos, ref, a)
+                if not gtd['GT'] == './.': ## ignore sites with missing genotypes
+                  if ('AD'in gtd) and ('DP' in gtd): # ignore sites with no AD or DP information
 
-                  fa_altdp = fa_d['altdp']
-                  fa_dp = fa_d['dp']
-                  fa_fmt = fa_d['fmt']
-                  fa_gt = fa_d['gt']
+                    ## parse strand-specific allelic depth information
+                    adf = gtd['F1R2']
+                    adr = gtd['F2R1']
 
-                  ## parse mother gvcf using tabix
-                  mo_d = parse_parent(mo_gvcf, region, chr, pos, ref, a)
+                    adfref = adf.split(',')[0]
+                    adrref = adr.split(',')[0]
 
-                  mo_altdp = mo_d['altdp']
-                  mo_dp = mo_d['dp']
-                  mo_fmt = mo_d['fmt']
-                  mo_gt = mo_d['gt']
+                    adfalt = adf.split(',')[pb_altidx]
+                    adralt = adr.split(',')[pb_altidx]
 
-                  
+                    pb_refdp = int(gtd['AD'].split(',')[0])
+                    pb_altdp = int(gtd['AD'].split(',')[pb_altidx])
+                    pb_dp = int(gtd['DP'])
 
-                  ## APPLY DE NOVO CALLING CRITERIA
-                  if not (int(pb_refdp) == 0): # ignore hom alt sites
-                    if int(pb_altdp) >= int(pb_min_alt):
-                      if int(fa_altdp) <= int(par_max_alt) and int(mo_altdp) <= int(par_max_alt):
-                        if int(fa_dp) >= int(par_min_dp) and int(mo_dp) >= int(par_min_dp):
-                          out = map(str, [sample_id, chr.strip('chr'), pos, ref, a, pb_refdp, pb_altdp, pb_dp, adfref, adfalt, adrref, adralt])
 
-                          #print '\t'.join(out) + '\t' + '\t'.join(tmp) + '\t' + tmpfa_d['FORMAT'] + '\t' + tmpfa[-1] + '\t' + tmpmo_d['FORMAT'] + '\t' + tmpmo[-1]
-                          #outf.write('\t'.join(out) + '\t' + '\t'.join(tmp) + '\t' + tmpfa_d['FORMAT'] + '\t' + tmpfa[-1] + '\t' + tmpmo_d['FORMAT'] + '\t' + tmpmo[-1] + '\n')
-                          outstring = '\t'.join(out) + '\t' + '\t'.join(tmp) + '\t' + fa_fmt + '\t' + fa_gt + '\t' + mo_fmt + '\t' + mo_gt
-                          print(outstring)
-                          outf.write(outstring + '\n')
+                    ## parse father gvcf using tabix
+                    fa_d = parse_parent(fa_gvcf, region, chr, pos, ref, a)
+
+                    fa_altdp = fa_d['altdp']
+                    fa_dp = fa_d['dp']
+                    fa_fmt = fa_d['fmt']
+                    fa_gt = fa_d['gt']
+
+                    ## parse mother gvcf using tabix
+                    mo_d = parse_parent(mo_gvcf, region, chr, pos, ref, a)
+
+                    mo_altdp = mo_d['altdp']
+                    mo_dp = mo_d['dp']
+                    mo_fmt = mo_d['fmt']
+                    mo_gt = mo_d['gt']
+
+                    
+
+                    ## APPLY DE NOVO CALLING CRITERIA
+                    if not (int(pb_refdp) == 0): # ignore hom alt sites
+                      if int(pb_altdp) >= int(pb_min_alt):
+                        if int(fa_altdp) <= int(par_max_alt) and int(mo_altdp) <= int(par_max_alt):
+                          if int(fa_dp) >= int(par_min_dp) and int(mo_dp) >= int(par_min_dp):
+                            out = map(str, [sample_id, chr.strip('chr'), pos, ref, a, pb_refdp, pb_altdp, pb_dp, adfref, adfalt, adrref, adralt])
+
+                            #print '\t'.join(out) + '\t' + '\t'.join(tmp) + '\t' + tmpfa_d['FORMAT'] + '\t' + tmpfa[-1] + '\t' + tmpmo_d['FORMAT'] + '\t' + tmpmo[-1]
+                            #outf.write('\t'.join(out) + '\t' + '\t'.join(tmp) + '\t' + tmpfa_d['FORMAT'] + '\t' + tmpfa[-1] + '\t' + tmpmo_d['FORMAT'] + '\t' + tmpmo[-1] + '\n')
+                            outstring = '\t'.join(out) + '\t' + '\t'.join(tmp) + '\t' + fa_fmt + '\t' + fa_gt + '\t' + mo_fmt + '\t' + mo_gt
+                            print(outstring)
+                            outf.write(outstring + '\n')
 
 
 
