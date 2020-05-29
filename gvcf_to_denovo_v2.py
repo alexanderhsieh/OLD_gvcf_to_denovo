@@ -45,9 +45,9 @@ parser.add_option('-o', '--output', dest='output_file',help='output tab-separate
 
 ## check all arguments present
 if (options.sample_id == None or options.sample_gvcf == None or options.fa_gvcf == None or options.mo_gvcf == None or options.ped == None or options.pb_min_alt == None or options.par_max_alt == None or options.par_min_dp == None):
-	print '\n' + '## ERROR: missing arguments' + '\n'
+	print('\n' + '## ERROR: missing arguments' + '\n')
 	parser.print_help()
-	print '\n'
+	print('\n')
 	sys.exit()
 
 
@@ -323,7 +323,7 @@ with gzip.open(sample_gvcf, 'r') as f:
                           #print '\t'.join(out) + '\t' + '\t'.join(tmp) + '\t' + tmpfa_d['FORMAT'] + '\t' + tmpfa[-1] + '\t' + tmpmo_d['FORMAT'] + '\t' + tmpmo[-1]
                           #outf.write('\t'.join(out) + '\t' + '\t'.join(tmp) + '\t' + tmpfa_d['FORMAT'] + '\t' + tmpfa[-1] + '\t' + tmpmo_d['FORMAT'] + '\t' + tmpmo[-1] + '\n')
                           outstring = '\t'.join(out) + '\t' + '\t'.join(tmp) + '\t' + fa_fmt + '\t' + fa_gt + '\t' + mo_fmt + '\t' + mo_gt
-                          print outstring
+                          print(outstring)
                           outf.write(outstring + '\n')
 
 
