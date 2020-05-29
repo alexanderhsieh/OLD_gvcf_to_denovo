@@ -100,7 +100,7 @@ task localize_path {
   }
 
   runtime {
-    docker: "mwalker174/sv-pipeline"
+    docker: "mwalker174/sv-pipeline:mw-00c-stitch-65060a1"
 
   }
 
