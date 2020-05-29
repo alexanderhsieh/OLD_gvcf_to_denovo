@@ -68,11 +68,11 @@ output_file = options.output_file
 ####################################################################################################
 def parse_parent(gvcf, region, chr, pos, ref, alt):
 
-  tmp_head = subprocess.Popen(('tabix', '-H', gvcf), stdout=subprocess.PIPE) # get header lines
-  tmp_cols = subprocess.check_output(('grep', '^#CHROM'), stdin=tmp_head.stdout).strip().split('\t') # parse column names
+  tmp_head = subprocess.Popen(('tabix', '-H', gvcf), shell=True, stdout=subprocess.PIPE) # get header lines
+  tmp_cols = subprocess.check_output(('grep', '^#CHROM'), shell=True, stdin=tmp_head.stdout).strip().split('\t') # parse column names
   tmp_head.wait()
 
-  tmp = subprocess.check_output(['tabix',gvcf, region]).strip().split('\n')
+  tmp = subprocess.check_output(['tabix',gvcf, region], shell=True).strip().split('\n')
 
   # intialize values
   # handles the case of empty tabix return
