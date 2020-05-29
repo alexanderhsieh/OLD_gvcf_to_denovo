@@ -170,6 +170,11 @@ with open(ped, 'r') as pedf:
 ####################################################################################################
 ## iterate over proband gVCF and 
 ####################################################################################################
+print('## GVCF PATHS:')
+print('## PROBAND: %s'%(sample_gvcf))
+print('## FATHER: %s'%(fa_gvcf))
+print('## MOTHER: %s'%(mo_gvcf))
+
 bufsize=1
 outf = open(output_file, 'w', buffering=bufsize)
 
