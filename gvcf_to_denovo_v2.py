@@ -68,12 +68,12 @@ output_file = options.output_file
 ## return parent dp, parent altdp, parent FORMAT, parent gt
 ####################################################################################################
 def parse_parent(gvcf, region, chr, pos, ref, alt):
+  tabix_cmd = 'tabix -H %s'%(gvcf)
+  tmp_head = subprocess.run(tabix_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8', text=True) # get header lines
+  tmp_cols = tmp_head.stdout.strip().split('\n')[-1].split('\t')
 
-  tmp_head = subprocess.Popen(('tabix', '-H', gvcf), shell=True, stdout=subprocess.PIPE, encoding='utf8') # get header lines
-  tmp_cols = subprocess.check_output(('grep', '^#CHROM'), shell=True, stdin=tmp_head.stdout, encoding='utf8').strip().split('\t') # parse column names
-  tmp_head.wait()
-
-  tmp = subprocess.check_output(['tabix',gvcf, region], shell=True, encoding='utf8').strip().split('\n')
+  tmp = subprocess.run('tabix %s %s'%(gvcf, region), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8').stdout
+  
 
   # intialize values
   # handles the case of empty tabix return
@@ -83,8 +83,8 @@ def parse_parent(gvcf, region, chr, pos, ref, alt):
   gt = 'NA'
   inf = 'NA'
   
-  if len(tmp) == 1 and (not tmp[0] == ''): # single variant return, non-empty tabix result
-    tmpv = tmp[0].split('\t')
+  if len([tmp]) == 1 and (not [tmp][0] == ''): # single variant return, non-empty tabix result
+    tmpv = tmp.strip().split('\t')
     tmp_d = dict(zip(tmp_cols, tmpv))
     tmp_gtd = dict(zip(tmp_d['FORMAT'].split(':'), tmpv[-1].split(':'))) # dictionary of FORMAT : GT value mapping
 
@@ -195,7 +195,8 @@ if pedd[sample_id]['fa'] == '0' or pedd[sample_id]['mo'] == '0':
 
 
 cmd2 = 'zcat < %s | grep -v "#"| wc -l'%(sample_gvcf)
-tot = int(subprocess.check_output(cmd2, shell=True, encoding='utf8').strip().split(' ')[0])
+#tot = int(subprocess.check_output(cmd2, shell=True, encoding='utf8').strip().split(' ')[0])
+tot = int(subprocess.Popen(cmd2, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8').communicate()[0].strip().split(' ')[0])
 print('## TOTAL VARIANT LINES: %s'%(str(tot)))
 
 
