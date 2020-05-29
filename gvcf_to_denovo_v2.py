@@ -210,7 +210,7 @@ i = 0
 
 
 ## iterate over proband gVCF
-with gzip.open(sample_gvcf, 'r') as f:  
+with gzip.open(sample_gvcf, 'rb') as f:  
 #with open(tmp_var_only, 'r') as f:  
   for line in f:
 
