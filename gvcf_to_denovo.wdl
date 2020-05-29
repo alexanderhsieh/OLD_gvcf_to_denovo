@@ -18,7 +18,8 @@
 ###########################################################################
 workflow gvcf_to_denovo {
   
-  File script
+  File localize_script
+  File dn_script
   String sample_id 
   File sample_map
   File ped
@@ -29,7 +30,8 @@ workflow gvcf_to_denovo {
 
 
   parameter_meta{
-    script: "gvcf_to_denovo.py"
+    localize_script: "parse_sample_map.py"
+    dn_script: "gvcf_to_denovo.py"
     sample_id: "sample ID for which to call de novo SNVs"
     sample_map: "sample map containing id:gvcf_path mapping; generated via Picard"
     ped: "pedigree file containing relatedness information; plink format"
@@ -43,10 +45,21 @@ workflow gvcf_to_denovo {
     email: "ahsieh@broadinstitute.org"
   }
 
+  call localize_path{
+    input:
+    script = localize_script,
+    sample_map = sample_map,
+    sample_id = sample_id
+
+  }
+
   call call_denovos {
     input:
-    script = script,
+    script = dn_script,
     sample_id = sample_id,
+
+    sample_gvcf = localize_path.local_gvcf,
+
     sample_map = sample_map,
     ped = ped,
     pb_min_alt = pb_min_alt,
@@ -68,13 +81,39 @@ workflow gvcf_to_denovo {
 ###########################################################################
 #Task Definitions
 ###########################################################################
+# Takes 
+task localize_path {
+  File script
+  File sample_map
+  String sample_id
 
+  command{
+    python -m ${sample_map} -s ${sample_id} > $TMP_PATH
+    echo "## BUCKET PATH: "$TMP_PATH
+
+    gsutil cp $TMP_PATH ./tmp.g.vcf.gz
+
+    echo `ls -hl tmp.g.vcf.gz`
+
+  }
+
+  runtime {
+    docker: "mwalker174/sv-pipeline:mw-00c-stitch-65060a1"
+    docker: "us.gcr.io/broad-gotc-prod/python:2.7"
+
+  }
+
+  output {
+    File local_gvcf = "tmp.g.vcf.gz"
+  }
+}
 
 #Calls denovos from proband gvcf + parent paths
 # NOTE: currently runs gsutil cp to localize proband gvcf
 task call_denovos {
   File script
   String sample_id
+  File sample_gvcf
   File sample_map
   File ped
   Int pb_min_alt
@@ -85,11 +124,11 @@ task call_denovos {
 
   command {
 
-    python -u ${script} -s ${sample_id} -m ${sample_map} -p ${ped} -x ${pb_min_alt} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
+    python -u ${script} -s ${sample_id} -g ${sample_gvcf} -m ${sample_map} -p ${ped} -x ${pb_min_alt} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
+
   }
 
   runtime {
-    docker: "mwalker174/sv-pipeline:mw-00c-stitch-65060a1"
     docker: "us.gcr.io/broad-gotc-prod/python:2.7"
 
   }

@@ -2,6 +2,7 @@
 ## Purpose: call de novos from a single sample gVCF
 '''
 Usage: gvcf_to_denovo.py -s <sample id> \
+                         -g <sample gvcf> \
                          -m <sample map> \
                          -p <ped file> \
                          -x <proband min altdp> \
@@ -13,6 +14,8 @@ Options:
   -h, --help            show this help message and exit
   -s sample_id, --sid=sample_id
                         sample ID
+  -g sample_gvcf --gvcf=sample_gvcf
+                        sample_gvcf
   -m sample_map, --smap=sample_map
                         sample map
   -p ped, --ped=ped
@@ -47,6 +50,7 @@ import gzip
 ####################################################################################################
 parser = OptionParser()
 parser.add_option('-s', '--sid', dest='sample_id',help='sample id')
+parser.add_option('-g', '--gvcf', dest='sample_gvcf',help='sample gvcf')
 parser.add_option('-m', '--smap', dest='sample_map',help='sample map (picard)')
 parser.add_option('-p', '--ped', dest='ped', help='pedigree file (plink)')
 parser.add_option('-x', '--min_alt', dest='pb_min_alt',help='proband minimum alternate allele read depth')
@@ -56,7 +60,7 @@ parser.add_option('-o', '--output', dest='output_file',help='output tab-separate
 (options, args) = parser.parse_args()
 
 ## check all arguments present
-if (options.sample_id == None or options.sample_map == None or options.ped == None or options.pb_min_alt == None or options.par_max_alt == None or options.par_min_dp == None):
+if (options.sample_id == None options.sample_gvcf == None or options.sample_map == None or options.ped == None or options.pb_min_alt == None or options.par_max_alt == None or options.par_min_dp == None):
 	print '\n' + '## ERROR: missing arguments' + '\n'
 	parser.print_help()
 	print '\n'
@@ -64,6 +68,7 @@ if (options.sample_id == None or options.sample_map == None or options.ped == No
 
 
 sample_id = options.sample_id
+sample_gvcf = options.sample_gvcf
 sample_map = options.sample_map
 ped = options.ped
 pb_min_alt = options.pb_min_alt
@@ -230,13 +235,13 @@ if pedd[sample_id]['fa'] == '0' or pedd[sample_id]['mo'] == '0':
 
 
 ## get gvcf paths
-sample_gvcf = pathd[sample_id]
+#sample_gvcf = pathd[sample_id]
 fa_gvcf = pathd[pedd[sample_id]['fa']]
 mo_gvcf = pathd[pedd[sample_id]['mo']]
 
 ## try gsutil cp commands
-tmpname = 'tmpproband'
-local_sample_gvcf = gsutil_localize(sample_gvcf, tmpname) # get new localized file path
+#tmpname = 'tmpproband.vcf.gz'
+#local_sample_gvcf = gsutil_localize(sample_gvcf, tmpname) # get new localized file path
 
 
 print('## COUNTING TOTAL VARIANT LINES')
@@ -257,8 +262,7 @@ i = 0
 
 
 ## iterate over proband gVCF
-#with gzip.open(sample_gvcf, 'r') as f:  
-with gzip.open(local_sample_gvcf, 'r') as f:  
+with gzip.open(sample_gvcf, 'r') as f:  
   for line in f:
 
 
@@ -378,7 +382,7 @@ with gzip.open(local_sample_gvcf, 'r') as f:
 
 outf.close()
 
-print('## REMOVING LOCALIZED FILES')
-subprocess.call('rm -rf ./%s'%(tmpname), shell=True)
-print('## DONE')
+#print('## REMOVING LOCALIZED FILES')
+#subprocess.call('rm -rf ./%s'%(tmpname), shell=True)
+#print('## DONE')
 
