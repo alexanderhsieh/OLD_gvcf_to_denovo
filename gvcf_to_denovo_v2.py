@@ -210,19 +210,18 @@ i = 0
 
 
 ## iterate over proband gVCF
-with gzip.open(sample_gvcf, 'rb') as f:  
-#with open(tmp_var_only, 'r') as f:  
+with gzip.open(sample_gvcf, 'r') as f:  
   for line in f:
 
 
-    tmp = line.strip().split('\t')
+    tmp = line.encode('utf-8').strip().split('\t')
 
     ## handle vcf header information
-    if line.startswith('##'):
+    if line.encode('utf-8').startswith('##'):
       continue
     
     ## handle vcf header containing column information
-    if line.startswith('#CHROM'):
+    if line.encode('utf-8').startswith('#CHROM'):
       idx = {col:index for index, col in enumerate(tmp)}
 
     ## handle variant lines
@@ -240,7 +239,7 @@ with gzip.open(sample_gvcf, 'rb') as f:
 
 
       ## ignore non-variant blocks 
-      if not 'END=' in line.strip():
+      if not 'END=' in line.encode('utf-8').strip():
         
         ## get proband variant information
         chr, pos, ref = tmp[idx['#CHROM']], tmp[idx['POS']], tmp[idx['REF']]
