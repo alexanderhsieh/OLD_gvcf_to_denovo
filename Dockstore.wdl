@@ -43,22 +43,27 @@ workflow gvcf_to_denovo {
     email: "ahsieh@broadinstitute.org"
   }
 
-  call call_denovos {
+  call localize_sample_map {
     input:
-    script = script,
-    sample_id = sample_id,
-    sample_map = sample_map,
-    ped = ped,
-    pb_min_alt = pb_min_alt,
-    par_max_alt = par_max_alt,
-    par_min_dp = par_min_dp,
-    output_suffix = output_suffix
+    in_map = sample_map
   }
+
+  #call call_denovos {
+  #  input:
+  #  script = script,
+  #  sample_id = sample_id,
+  #  sample_map = sample_map,
+  #  ped = ped,
+  #  pb_min_alt = pb_min_alt,
+  #  par_max_alt = par_max_alt,
+  #  par_min_dp = par_min_dp,
+  #  output_suffix = output_suffix
+  #}
 
 
   #Outputs a .txt file containing de novo SNVs
   output {
-    File denovos = call_denovos.outfile
+    #File denovos = call_denovos.outfile
       
   }
 
@@ -68,6 +73,17 @@ workflow gvcf_to_denovo {
 ###########################################################################
 #Task Definitions
 ###########################################################################
+
+#Generates new sample map using localized file paths
+task localize_sample_map {
+  Array[File] in_map
+
+  command{
+
+    echo ${sep=" " in_map}
+
+  }
+}
 
 #Scores variants in dnSNVs file
 task call_denovos {
@@ -82,6 +98,7 @@ task call_denovos {
   String output_file = "${sample_id}${output_suffix}"
 
   command {
+
     python -u ${script} -s ${sample_id} -m ${sample_map} -p ${ped} -x ${pb_min_alt} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
   }
 
