@@ -31,7 +31,7 @@ workflow gvcf_to_denovo {
 
   parameter_meta{
     localize_script: "parse_sample_map.py"
-    dn_script: "gvcf_to_denovo.py"
+    dn_script: "gvcf_to_denovo_v2.py"
     sample_id: "sample ID for which to call de novo SNVs"
     sample_map: "sample map containing id:gvcf_path mapping; generated via Picard"
     ped: "pedigree file containing relatedness information; plink format"
@@ -49,6 +49,7 @@ workflow gvcf_to_denovo {
     input:
     script = localize_script,
     sample_map = sample_map,
+    ped = ped,
     sample_id = sample_id
 
   }
@@ -58,7 +59,9 @@ workflow gvcf_to_denovo {
     script = dn_script,
     sample_id = sample_id,
 
-    sample_gvcf = localize_path.local_gvcf,
+    sample_gvcf = localize_path.local_pb_gvcf,
+    father_gvcf = localize_path.local_fa_gvcf,
+    mother_gvcf = localize_path.local_mo_gvcf,
 
     sample_map = sample_map,
     ped = ped,
@@ -85,17 +88,40 @@ workflow gvcf_to_denovo {
 task localize_path {
   File script
   File sample_map
+  File ped
   String sample_id
 
   command{
     
-    TMP_PATH=`python ${script} -m ${sample_map} -s ${sample_id}`
+    ## PARSE SAMPLE MAP GOOGLE BUCKET PATHS
+    python ${script} -m ${sample_map} -p ${ped} -s ${sample_id}
     
-    echo "## BUCKET PATH: "$TMP_PATH
+    ## LOCALIZE PROBAND
+    PB_PATH=`cat tmp.pb_path.txt`
+    
+    echo "## PROBAND BUCKET PATH: "$PB_PATH
+    
+    gsutil cp $PB_PATH ./tmp.pb.g.vcf.gz
 
-    gsutil cp $TMP_PATH ./tmp.g.vcf.gz
+    echo `ls -hl tmp.pb.g.vcf.gz`
 
-    echo `ls -hl tmp.g.vcf.gz`
+    ## LOCALIZE FATHER
+    FA_PATH=`cat tmp.fa_path.txt`
+    
+    echo "## FATHER BUCKET PATH: "$FA_PATH
+    
+    gsutil cp $FA_PATH ./tmp.fa.g.vcf.gz
+
+    echo `ls -hl tmp.fa.g.vcf.gz`
+
+    ## LOCALIZE MOTHER
+    MO_PATH=`cat tmp.mo_path.txt`
+    
+    echo "## MOTHER BUCKET PATH: "$MO_PATH
+    
+    gsutil cp $MO_PATH ./tmp.mo.g.vcf.gz
+
+    echo `ls -hl tmp.mo.g.vcf.gz`
 
   }
 
@@ -105,7 +131,9 @@ task localize_path {
   }
 
   output {
-    File local_gvcf = "tmp.g.vcf.gz"
+    File local_pb_gvcf = "tmp.pb.g.vcf.gz"
+    File local_fa_gvcf = "tmp.fa.g.vcf.gz"
+    File local_mo_gvcf = "tmp.mo.g.vcf.gz"
   }
 }
 
@@ -115,6 +143,8 @@ task call_denovos {
   File script
   String sample_id
   File sample_gvcf
+  File father_gvcf
+  File mother_gvcf
   File sample_map
   File ped
   Int pb_min_alt
@@ -125,7 +155,7 @@ task call_denovos {
 
   command {
 
-    python -u ${script} -s ${sample_id} -g ${sample_gvcf} -m ${sample_map} -p ${ped} -x ${pb_min_alt} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
+    python -u ${script} -s ${sample_id} -p ${sample_gvcf} -f ${father_gvcf} -m ${mother_gvcf} -r ${ped} -x ${pb_min_alt} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
 
   }
 
