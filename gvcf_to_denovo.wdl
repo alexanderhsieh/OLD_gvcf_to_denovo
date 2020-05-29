@@ -101,7 +101,6 @@ task localize_path {
 
   runtime {
     docker: "mwalker174/sv-pipeline"
-    docker: "us.gcr.io/broad-gotc-prod/python:2.7"
 
   }
 
