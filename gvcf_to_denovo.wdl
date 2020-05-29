@@ -88,7 +88,9 @@ task localize_path {
   String sample_id
 
   command{
-    python -m ${sample_map} -s ${sample_id} > $TMP_PATH
+    
+    TMP_PATH=`python -m ${sample_map} -s ${sample_id}`
+    
     echo "## BUCKET PATH: "$TMP_PATH
 
     gsutil cp $TMP_PATH ./tmp.g.vcf.gz
