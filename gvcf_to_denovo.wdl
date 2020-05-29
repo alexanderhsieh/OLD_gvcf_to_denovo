@@ -89,7 +89,7 @@ task localize_path {
 
   command{
     
-    TMP_PATH=`python -m ${sample_map} -s ${sample_id}`
+    TMP_PATH=`python ${script} -m ${sample_map} -s ${sample_id}`
     
     echo "## BUCKET PATH: "$TMP_PATH
 
