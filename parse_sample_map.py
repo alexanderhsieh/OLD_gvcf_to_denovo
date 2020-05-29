@@ -15,10 +15,10 @@ parser.add_option('-s', '--sid', dest='sample_id',help='sample id')
 (options, args) = parser.parse_args()
 
 ## check all arguments present
-if (options.sample_id == None or options.sample_map == None):
-	print '\n' + '## ERROR: missing arguments' + '\n'
+if (options.sample_map == None oorptions.sample_id == None):
+	print('\n' + '## ERROR: missing arguments' + '\n')
 	parser.print_help()
-	print '\n'
+	print('\n')
 	sys.exit()
 
 
