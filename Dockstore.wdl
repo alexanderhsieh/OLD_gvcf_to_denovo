@@ -142,9 +142,11 @@ task localize_path {
 task call_denovos {
   File script
   String sample_id
+
   File sample_gvcf
   File father_gvcf
   File mother_gvcf
+
   File sample_map
   File ped
   Int pb_min_alt
@@ -160,7 +162,7 @@ task call_denovos {
   }
 
   runtime {
-    docker: "us.gcr.io/broad-gotc-prod/python:2.7"
+    docker: "mwalker174/sv-pipeline:mw-00c-stitch-65060a1"
 
   }
 
