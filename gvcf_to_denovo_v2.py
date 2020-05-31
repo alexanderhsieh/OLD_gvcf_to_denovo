@@ -108,6 +108,7 @@ def parse_parent(gvcf, region, chr, pos, ref, alt):
               if not './.' in tmp_gtd['GT']:
                 altdp = int(tmp_gtd['AD'].split(',')[altidx-1])
                 dp = int(tmp_gtd['DP'])
+                print('# parent variant found')
           else: # if variant allele not present, parent has effective altdp = 0
             try: # handle missing DP cases e.g. tabix 11003-mo.g.vcf.gz chr8:144530986-144530986
               dp = int(tmp_gtd['DP'])
@@ -140,6 +141,7 @@ def parse_parent(gvcf, region, chr, pos, ref, alt):
                 if not './.' in tmp_gtd['GT']:
                   altdp = int(tmp_gtd['AD'].split(',')[altidx-1])
                   dp = int(tmp_gtd['DP'])
+                  print('# parent variant found')
             else: # if variant allele not present, parent has effective altdp = 0
               altdp = 0
               try: # handle missing DP cases e.g. tabix 11003-mo.g.vcf.gz chr8:144530986-144530986
@@ -179,7 +181,7 @@ print('## MOTHER: %s'%(mo_gvcf))
 
 #bufsize=1
 #outf = open(output_file, 'w', buffering=bufsize)
-outf = open(output_file, 'w')
+outf = open(output_file, 'a')
 
 ##
 ## IF NOT PROBAND OR SIBLING, WRITE ERROR MESSAGE AND EXIT
