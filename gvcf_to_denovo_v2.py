@@ -177,8 +177,9 @@ print('## PROBAND: %s'%(sample_gvcf))
 print('## FATHER: %s'%(fa_gvcf))
 print('## MOTHER: %s'%(mo_gvcf))
 
-bufsize=1
-outf = open(output_file, 'w', buffering=bufsize)
+#bufsize=1
+#outf = open(output_file, 'w', buffering=bufsize)
+outf = open(output_file, 'w')
 
 ##
 ## IF NOT PROBAND OR SIBLING, WRITE ERROR MESSAGE AND EXIT
