@@ -181,7 +181,7 @@ print('## MOTHER: %s'%(mo_gvcf))
 
 #bufsize=1
 #outf = open(output_file, 'w', buffering=bufsize)
-outf = open(output_file, 'a')
+outf = open(output_file, 'w')
 
 ##
 ## IF NOT PROBAND OR SIBLING, WRITE ERROR MESSAGE AND EXIT
@@ -331,6 +331,9 @@ with gzip.open(sample_gvcf, 'rb') as f:
                             outstring = '\t'.join(out) + '\t' + '\t'.join(tmp) + '\t' + fa_fmt + '\t' + fa_gt + '\t' + mo_fmt + '\t' + mo_gt
                             print(outstring)
                             outf.write(outstring + '\n')
+                            # deal with empty output?
+                            outf.flush()
+                            os.fsync(outf)
 
 
 
