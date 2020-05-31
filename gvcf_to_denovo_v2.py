@@ -69,7 +69,8 @@ output_file = options.output_file
 ####################################################################################################
 def parse_parent(gvcf, region, chr, pos, ref, alt):
   tabix_cmd = 'tabix -H %s'%(gvcf)
-  tmp_head = subprocess.run(tabix_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8', text=True) # get header lines
+  #tmp_head = subprocess.run(tabix_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8', text=True) # get header lines
+  tmp_head = subprocess.run(tabix_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8') # get header lines
   tmp_cols = tmp_head.stdout.strip().split('\n')[-1].split('\t')
 
   tmp = subprocess.run('tabix %s %s'%(gvcf, region), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8').stdout
