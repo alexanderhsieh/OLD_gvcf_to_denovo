@@ -74,6 +74,8 @@ workflow gvcf_to_denovo {
 
   #Outputs a .txt file containing de novo SNVs
   output {
+
+    File test_tabix = call_denovos.test_tabix
     File denovos = call_denovos.outfile
       
   }
@@ -157,6 +159,10 @@ task call_denovos {
 
   command {
 
+    which tabix
+    tabix -H ${father_gvcf} > "test_tabix_father.txt"
+    tabix ${father_gvcf} chr1:14653-14653 >> "test_tabix_father.txt"
+
     python ${script} -s ${sample_id} -p ${sample_gvcf} -f ${father_gvcf} -m ${mother_gvcf} -r ${ped} -x ${pb_min_alt} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
   }
 
@@ -166,6 +172,7 @@ task call_denovos {
   }
 
   output {
+    File test_tabix = "test_tabix_Father_header.txt"
     File outfile = "${output_file}"
   }
 }

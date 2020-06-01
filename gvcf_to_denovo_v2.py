@@ -75,10 +75,11 @@ def parse_parent(gvcf, region, chr, pos, ref, alt):
 
   tmp = subprocess.run('tabix %s %s'%(gvcf, region), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8').stdout
   
+
+
   print('##')
   print('## %s'%(tabix_cmd))
-  #print('## %s'%(tmp_head))
-  #print('## %s'%(tmp_cols))
+  print('## %s'%('tabix %s %s'%(gvcf, region)))
   print('## %s'%(tmp))
 
   # intialize values
@@ -242,8 +243,12 @@ with gzip.open(sample_gvcf, 'rb') as f:
         if i%1000 == 0:
           print('## %d/%d lines processed ... '%(i, tot))
 
+
+
         if i > 10:
           break
+
+
 
         ## initialize values to avoid iteration bugs
         chr, pos, ref, alt = '', '', '',''
