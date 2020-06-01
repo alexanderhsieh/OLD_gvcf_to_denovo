@@ -78,7 +78,6 @@ workflow gvcf_to_denovo {
   #Outputs a .txt file containing de novo SNVs
   output {
 
-    File test_tabix = call_denovos.test_tabix
     File denovos = call_denovos.outfile
       
   }
@@ -109,8 +108,8 @@ task localize_path {
     gsutil cp $PB_PATH ./tmp.pb.g.vcf.gz
     gsutil cp $PB_PATH".tbi" ./tmp.pb.g.vcf.gz.tbi
 
-    echo `ls -hl tmp.pb.g.vcf.gz`
-    echo `ls -hl tmp.pb.g.vcf.gz.tbi`
+    #echo `ls -hl tmp.pb.g.vcf.gz`
+    #echo `ls -hl tmp.pb.g.vcf.gz.tbi`
 
     ## LOCALIZE FATHER
     FA_PATH=`cat tmp.fa_path.txt`
@@ -120,8 +119,8 @@ task localize_path {
     gsutil cp $FA_PATH ./tmp.fa.g.vcf.gz
     gsutil cp $FA_PATH".tbi" ./tmp.fa.g.vcf.gz.tbi
 
-    echo `ls -hl tmp.fa.g.vcf.gz`
-    echo `ls -hl tmp.fa.g.vcf.gz.tbi`
+    #echo `ls -hl tmp.fa.g.vcf.gz`
+    #echo `ls -hl tmp.fa.g.vcf.gz.tbi`
 
     ## LOCALIZE MOTHER
     MO_PATH=`cat tmp.mo_path.txt`
@@ -131,8 +130,8 @@ task localize_path {
     gsutil cp $MO_PATH ./tmp.mo.g.vcf.gz
     gsutil cp $MO_PATH".tbi" ./tmp.mo.g.vcf.gz.tbi
 
-    echo `ls -hl tmp.mo.g.vcf.gz`
-    echo `ls -hl tmp.mo.g.vcf.gz.tbi`
+    #echo `ls -hl tmp.mo.g.vcf.gz`
+    #echo `ls -hl tmp.mo.g.vcf.gz.tbi`
 
   }
 
@@ -175,10 +174,6 @@ task call_denovos {
 
   command {
 
-    which tabix
-    tabix -H ${father_gvcf} > "test_tabix_father.txt"
-    tabix ${father_gvcf} chr1:14653-14653 >> "test_tabix_father.txt"
-
     python ${script} -s ${sample_id} -p ${sample_gvcf} -f ${father_gvcf} -m ${mother_gvcf} -r ${ped} -x ${pb_min_alt} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
   }
 
@@ -188,7 +183,6 @@ task call_denovos {
   }
 
   output {
-    File test_tabix = "test_tabix_Father_header.txt"
     File outfile = "${output_file}"
   }
 }

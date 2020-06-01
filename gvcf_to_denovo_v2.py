@@ -244,12 +244,6 @@ with gzip.open(sample_gvcf, 'rb') as f:
           print('## %d/%d lines processed ... '%(i, tot))
 
 
-
-        if i > 10:
-          break
-
-
-
         ## initialize values to avoid iteration bugs
         chr, pos, ref, alt = '', '', '',''
         region = ''
