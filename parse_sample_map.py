@@ -55,9 +55,15 @@ with open(sample_map, 'r') as smapf:
 
 
 ## return path
+pb_path = '.'
 pb_path = pathd[sample_id]
-fa_path = pathd[pedd[sample_id]['fa']]
-mo_path = pathd[pedd[sample_id]['mo']]
+## if parent, return default values
+if pedd[sample_id]['fa'] == '0' or pedd[sample_id]['mo'] == '0':
+	err_msg = '## ERROR! PARENT SAMPLE, NO PARENTAL GVCF PATH'
+	fa_path, mo_path = '.', '.'
+else:
+	fa_path = pathd[pedd[sample_id]['fa']]
+	mo_path = pathd[pedd[sample_id]['mo']]
 
 print(pb_path)
 print(fa_path)
