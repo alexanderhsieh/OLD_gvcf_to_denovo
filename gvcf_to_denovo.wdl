@@ -60,8 +60,11 @@ workflow gvcf_to_denovo {
     sample_id = sample_id,
 
     sample_gvcf = localize_path.local_pb_gvcf,
+    sample_gvcf_index = localize_path.local_pb_gvcf_index,
     father_gvcf = localize_path.local_fa_gvcf,
+    father_gvcf_index = localize_path.local_fa_gvcf_index,
     mother_gvcf = localize_path.local_mo_gvcf,
+    mother_gvcf_index = localize_path.local_mo_gvcf_index,
 
     sample_map = sample_map,
     ped = ped,
@@ -104,8 +107,10 @@ task localize_path {
     echo "## PROBAND BUCKET PATH: "$PB_PATH
     
     gsutil cp $PB_PATH ./tmp.pb.g.vcf.gz
+    gsutil cp $PB_PATH".tbi" ./tmp.pb.g.vcf.gz.tbi
 
     echo `ls -hl tmp.pb.g.vcf.gz`
+    echo `ls -hl tmp.pb.g.vcf.gz.tbi`
 
     ## LOCALIZE FATHER
     FA_PATH=`cat tmp.fa_path.txt`
@@ -113,8 +118,10 @@ task localize_path {
     echo "## FATHER BUCKET PATH: "$FA_PATH
     
     gsutil cp $FA_PATH ./tmp.fa.g.vcf.gz
+    gsutil cp $FA_PATH".tbi" ./tmp.fa.g.vcf.gz.tbi
 
     echo `ls -hl tmp.fa.g.vcf.gz`
+    echo `ls -hl tmp.fa.g.vcf.gz.tbi`
 
     ## LOCALIZE MOTHER
     MO_PATH=`cat tmp.mo_path.txt`
@@ -122,8 +129,10 @@ task localize_path {
     echo "## MOTHER BUCKET PATH: "$MO_PATH
     
     gsutil cp $MO_PATH ./tmp.mo.g.vcf.gz
+    gsutil cp $MO_PATH".tbi" ./tmp.mo.g.vcf.gz.tbi
 
     echo `ls -hl tmp.mo.g.vcf.gz`
+    echo `ls -hl tmp.mo.g.vcf.gz.tbi`
 
   }
 
@@ -134,8 +143,11 @@ task localize_path {
 
   output {
     File local_pb_gvcf = "tmp.pb.g.vcf.gz"
+    File local_pb_gvcf_index = "tmp.pb.g.vcf.gz.tbi"
     File local_fa_gvcf = "tmp.fa.g.vcf.gz"
+    File local_fa_gvcf_index = "tmp.fa.g.vcf.gz.tbi"
     File local_mo_gvcf = "tmp.mo.g.vcf.gz"
+    File local_mo_gvcf_index = "tmp.mo.g.vcf.gz.tbi"
   }
 }
 
@@ -146,8 +158,12 @@ task call_denovos {
   String sample_id
 
   File sample_gvcf
+  File sample_gvcf_index
   File father_gvcf
+  File father_gvcf_index
   File mother_gvcf
+  File mother_gvcf_index
+
 
   File sample_map
   File ped
