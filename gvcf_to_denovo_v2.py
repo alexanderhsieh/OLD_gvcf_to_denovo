@@ -77,10 +77,10 @@ def parse_parent(gvcf, region, chr, pos, ref, alt):
   
 
 
-  print('##')
-  print('## %s'%(tabix_cmd))
-  print('## %s'%('tabix %s %s'%(gvcf, region)))
-  print('## %s'%(tmp))
+  #print('##')
+  #print('## %s'%(tabix_cmd))
+  #print('## %s'%('tabix %s %s'%(gvcf, region)))
+  #print('## %s'%(tmp))
 
   # intialize values
   # handles the case of empty tabix return
@@ -219,7 +219,7 @@ head = ['id', 'chr', 'pos', 'ref', 'alt', 'dp', 'adfref', 'adfalt', 'adrref', 'a
 outf.write('\t'.join(head) + '\n')
 
 i = 0
-
+dnct = 0
 
 ## iterate over proband gVCF
 with gzip.open(sample_gvcf, 'rb') as f:
@@ -346,6 +346,10 @@ with gzip.open(sample_gvcf, 'rb') as f:
                             # deal with empty output?
                             outf.flush()
                             os.fsync(outf)
+
+                            dnct += 1
+
+                            print('## %d de novo variants found ...'%(dnct))
 
 
 
