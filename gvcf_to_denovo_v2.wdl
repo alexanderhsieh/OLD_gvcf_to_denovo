@@ -71,7 +71,7 @@ workflow gvcf_to_denovo {
       sample_id = sample_id,
 
       sample_gvcf = split_gvcf.out[idx],
-      sample_gvcf_index = localize_path.local_pb_gvcf_index,
+      sample_gvcf_index = split_gvcf.out_index[idx],
       father_gvcf = localize_path.local_fa_gvcf,
       father_gvcf_index = localize_path.local_fa_gvcf_index,
       mother_gvcf = localize_path.local_mo_gvcf,
@@ -106,6 +106,9 @@ workflow gvcf_to_denovo {
   output {
 
     File denovos = gather_shards.out
+
+    File split_gvcf_header = split_gvcf.header
+    Array[File] call_denovos_header = call_denovos.header
       
   }
 
@@ -211,8 +214,11 @@ task split_gvcf {
   }
 
   output {
-    Array[File] out = glob("*.g.vcf.gz") # is the issue with the glob path?
+    Array[File] out = glob("*.g.vcf.gz") 
+    Array[File] out_index = glob("*.g.vcf.gz.tbi")
     File filepaths = "file_full_paths.txt"
+
+    File header = "header.txt"
   }
 
   runtime {
@@ -229,6 +235,7 @@ task call_denovos {
 
   File sample_gvcf
   File sample_gvcf_index
+
   File father_gvcf
   File father_gvcf_index
   File mother_gvcf
@@ -247,6 +254,8 @@ task call_denovos {
 
   command {
 
+    zcat ${sample_gvcf} | head -n 100 > header.${shard}.txt
+
     python ${script} -s ${sample_id} -p ${sample_gvcf} -f ${father_gvcf} -m ${mother_gvcf} -r ${ped} -x ${pb_min_alt} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
   }
 
@@ -257,6 +266,8 @@ task call_denovos {
 
   output {
     File outfile = "${output_file}"
+    
+    File header = "header.${shard}.txt"
   }
 }
 
