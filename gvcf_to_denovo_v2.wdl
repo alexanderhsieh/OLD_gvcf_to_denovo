@@ -152,14 +152,14 @@ task localize_path {
     then
       touch ./tmp.fa.g.vcf.gz
       touch ./tmp.fa.g.vcf.gz.tbi
-      echo "## ERROR: MISSING FATHER GVCF PATH"; exit
+      echo "## ERROR: MISSING FATHER GVCF PATH"
     
     ## if no mother listed in ped
     elif [ "$MO_PATH" = "." ]
     then
       touch ./tmp.mo.g.vcf.gz
       touch ./tmp.mo.g.vcf.gz.tbi
-      echo "## ERROR: MISSING MOTHER GVCF PATH"; exit
+      echo "## ERROR: MISSING MOTHER GVCF PATH"
     
     ## if both parents found
     else
@@ -266,7 +266,7 @@ task call_denovos {
 
   output {
     File outfile = "${output_file}"
-    
+
     File header = "header.${shard}.txt"
   }
 }
