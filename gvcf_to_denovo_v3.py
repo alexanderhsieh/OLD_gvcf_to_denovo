@@ -229,7 +229,7 @@ dnct = 0
 with open(sample_gvcf, 'r') as f:
 
   for line in f:
-    print(line)
+    #print(line)
 
     tmp = line.strip().split('\t')
 
