@@ -227,6 +227,8 @@ dnct = 0
 #    for line in decodef:
 
 with open(sample_gvcf, 'r') as f:
+  print(line)
+  
   for line in f:
 
     tmp = line.strip().split('\t')
