@@ -93,7 +93,7 @@ workflow gvcf_to_denovo {
   # Step 3: gather shards into final output 
   call gather_shards {
     input:
-    vcf_shards = call_denovos.outfile,
+    shards = call_denovos.outfile,
     prefix = sample_id,
     suffix = output_suffix
   }
@@ -189,7 +189,7 @@ task split_gvcf {
 
   File gvcf # input gvcf
   File index # input gvcf index
-  String outprefix = basename(vcf, '.g.vcf.gz')
+  String outprefix = basename(gvcf, '.g.vcf.gz')
 
   command {
     # pull header lines
