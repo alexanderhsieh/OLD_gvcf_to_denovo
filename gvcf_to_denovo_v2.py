@@ -214,7 +214,7 @@ print('')
 print('## ITERATING OVER VARIANT LINES')
 print('')
 
-head = ['id', 'chr', 'pos', 'ref', 'alt', 'dp', 'adfref', 'adfalt', 'adrref', 'adralt', 'CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT', 'S_GT', 'FA_FORMAT', 'FA_GT', 'MO_FORMAT', 'MO_GT']
+head = ['id', 'chr', 'pos', 'ref', 'alt', 'refdp', 'altdp', 'dp', 'adfref', 'adfalt', 'adrref', 'adralt', 'CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT', 'S_GT', 'FA_FORMAT', 'FA_GT', 'MO_FORMAT', 'MO_GT']
 #print '\t'.join(head)
 outf.write('\t'.join(head) + '\n')
 
