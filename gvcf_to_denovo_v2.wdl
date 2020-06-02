@@ -247,7 +247,7 @@ task call_denovos {
 
   command {
 
-    zcat ${sample_vcf} | head -n 100 > header.${shard}.txt
+    cat ${sample_vcf} | head -n 100 > header.${shard}.txt
 
     python ${script} -s ${sample_id} -p ${sample_vcf} -f ${father_gvcf} -m ${mother_gvcf} -r ${ped} -x ${pb_min_alt} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
   }
