@@ -63,51 +63,14 @@ workflow gvcf_to_denovo {
 
   # for each chr vcf, call de novos
   
-  scatter (idx in range(length(split_gvcf.out))) {
-    
-    call call_denovos {
-      input:
-      script = dn_script,
-      sample_id = sample_id,
-
-      sample_vcf = split_gvcf.out[idx],
-      father_gvcf = localize_path.local_fa_gvcf,
-      father_gvcf_index = localize_path.local_fa_gvcf_index,
-      mother_gvcf = localize_path.local_mo_gvcf,
-      mother_gvcf_index = localize_path.local_mo_gvcf_index,
-
-      sample_map = sample_map,
-      ped = ped,
-      pb_min_alt = pb_min_alt,
-      par_max_alt = par_max_alt,
-      par_min_dp = par_min_dp,
-
-      shard = "${idx}"
-
-    }
-
-
-  }
-
-  # Step 3: gather shards into final output 
-  call gather_shards {
-    input:
-    shards = call_denovos.outfile,
-    prefix = sample_id,
-    suffix = output_suffix
-  }
-
-
   
-
 
   #Outputs a .txt file containing de novo SNVs
   output {
 
-    File denovos = gather_shards.out
+    Array[File] split_shards = split_gvcf.out
 
     File split_gvcf_header = split_gvcf.header
-    Array[File] call_denovos_header = call_denovos.header
       
   }
 
