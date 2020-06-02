@@ -147,11 +147,15 @@ task localize_path {
     ## if no father listed in ped
     if [ "$FA_PATH" = "." ]
     then
+      touch ./tmp.fa.g.vcf.gz
+      touch ./tmp.fa.g.vcf.gz.tbi
       echo "## ERROR: MISSING FATHER GVCF PATH"; exit
     
     ## if no mother listed in ped
     elif [ "$MO_PATH" = "." ]
     then
+      touch ./tmp.mo.g.vcf.gz
+      touch ./tmp.mo.g.vcf.gz.tbi
       echo "## ERROR: MISSING MOTHER GVCF PATH"; exit
     
     ## if both parents found
@@ -242,9 +246,6 @@ task call_denovos {
   String output_file = "${sample_id}.${shard}.denovo.txt"
 
   command {
-
-    ## check header lines
-    zcat < ${sample_gvcf} | grep "^#"
 
     python ${script} -s ${sample_id} -p ${sample_gvcf} -f ${father_gvcf} -m ${mother_gvcf} -r ${ped} -x ${pb_min_alt} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
   }

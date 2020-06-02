@@ -227,6 +227,13 @@ with gzip.open(sample_gvcf, 'rb') as f:
     for line in decodef:
 
 
+
+      print(line) ## print until it fails, see why idx isn't being populated
+
+
+
+
+
       tmp = line.strip().split('\t')
 
       ## handle vcf header information
