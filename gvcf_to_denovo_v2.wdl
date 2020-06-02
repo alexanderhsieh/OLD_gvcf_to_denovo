@@ -243,6 +243,9 @@ task call_denovos {
 
   command {
 
+    ## check header lines
+    zcat < ${sample_gvcf} | grep "^#"
+
     python ${script} -s ${sample_id} -p ${sample_gvcf} -f ${father_gvcf} -m ${mother_gvcf} -r ${ped} -x ${pb_min_alt} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
   }
 
