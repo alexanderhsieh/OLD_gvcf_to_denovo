@@ -61,7 +61,7 @@ workflow gvcf_to_denovo {
     index = localize_path.local_pb_gvcf_index
   }
 
-  # for each chr gvcf, call de novos
+  # for each chr vcf, call de novos
   
   scatter (idx in range(length(split_gvcf.out))) {
     
@@ -70,8 +70,7 @@ workflow gvcf_to_denovo {
       script = dn_script,
       sample_id = sample_id,
 
-      sample_gvcf = split_gvcf.out[idx],
-      sample_gvcf_index = localize_path.local_pb_gvcf_index,
+      sample_vcf = split_gvcf.out[idx],
       father_gvcf = localize_path.local_fa_gvcf,
       father_gvcf_index = localize_path.local_fa_gvcf_index,
       mother_gvcf = localize_path.local_mo_gvcf,
@@ -147,20 +146,16 @@ task localize_path {
     FA_PATH=`cat tmp.fa_path.txt`
     MO_PATH=`cat tmp.mo_path.txt`
 
-    ## if no father listed in ped
-    if [[ "$FA_PATH" == "." ]]
+    ## if no father or mother listed in ped
+    if [[ "$FA_PATH" == "." ]] | [[ "$MO_PATH" == "." ]]
     then
       touch ./tmp.fa.g.vcf.gz
       touch ./tmp.fa.g.vcf.gz.tbi
       echo "## ERROR: MISSING FATHER GVCF PATH"
-    
-    ## if no mother listed in ped
-    elif [[ "$MO_PATH" == "." ]]
-    then
+
       touch ./tmp.mo.g.vcf.gz
       touch ./tmp.mo.g.vcf.gz.tbi
       echo "## ERROR: MISSING MOTHER GVCF PATH"
-    
     ## if both parents found
     else
       echo "## FATHER BUCKET PATH: "$FA_PATH
@@ -205,16 +200,16 @@ task split_gvcf {
     # split vcf by chromosome - use tabix -l to get all contig names from tabix index
     for i in $(tabix -l ${gvcf})
     do 
-      (cat header.txt; tabix ${gvcf} $i) | bgzip -c > "${outprefix}.$i.g.vcf.gz"
+      (cat header.txt; tabix ${gvcf} $i)  > "${outprefix}.$i.vcf"
     done
 
     ## get full directory paths
-    readlink -f *.g.vcf.gz > file_full_paths.txt
+    readlink -f *.vcf > file_full_paths.txt
 
   }
 
   output {
-    Array[File] out = glob("*.g.vcf.gz") 
+    Array[File] out = glob("*.vcf") 
     File filepaths = "file_full_paths.txt"
 
     File header = "header.txt"
@@ -232,8 +227,7 @@ task call_denovos {
   File script
   String sample_id
 
-  File sample_gvcf
-  File sample_gvcf_index
+  File sample_vcf
 
   File father_gvcf
   File father_gvcf_index
@@ -253,9 +247,9 @@ task call_denovos {
 
   command {
 
-    zcat ${sample_gvcf} | head -n 100 > header.${shard}.txt
+    zcat ${sample_vcf} | head -n 100 > header.${shard}.txt
 
-    python ${script} -s ${sample_id} -p ${sample_gvcf} -f ${father_gvcf} -m ${mother_gvcf} -r ${ped} -x ${pb_min_alt} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
+    python ${script} -s ${sample_id} -p ${sample_vcf} -f ${father_gvcf} -m ${mother_gvcf} -r ${ped} -x ${pb_min_alt} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
   }
 
   runtime {
