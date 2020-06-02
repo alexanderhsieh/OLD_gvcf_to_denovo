@@ -71,7 +71,7 @@ workflow gvcf_to_denovo {
       sample_id = sample_id,
 
       sample_gvcf = split_gvcf.out[idx],
-      sample_gvcf_index = split_gvcf.out_index[idx],
+      sample_gvcf_index = localize_path.local_pb_gvcf_index,
       father_gvcf = localize_path.local_fa_gvcf,
       father_gvcf_index = localize_path.local_fa_gvcf_index,
       mother_gvcf = localize_path.local_mo_gvcf,
@@ -148,14 +148,14 @@ task localize_path {
     MO_PATH=`cat tmp.mo_path.txt`
 
     ## if no father listed in ped
-    if [ "$FA_PATH" = "." ]
+    if [[ "$FA_PATH" == "." ]]
     then
       touch ./tmp.fa.g.vcf.gz
       touch ./tmp.fa.g.vcf.gz.tbi
       echo "## ERROR: MISSING FATHER GVCF PATH"
     
     ## if no mother listed in ped
-    elif [ "$MO_PATH" = "." ]
+    elif [[ "$MO_PATH" == "." ]]
     then
       touch ./tmp.mo.g.vcf.gz
       touch ./tmp.mo.g.vcf.gz.tbi
@@ -215,7 +215,6 @@ task split_gvcf {
 
   output {
     Array[File] out = glob("*.g.vcf.gz") 
-    Array[File] out_index = glob("*.g.vcf.gz.tbi")
     File filepaths = "file_full_paths.txt"
 
     File header = "header.txt"
