@@ -58,7 +58,8 @@ workflow gvcf_to_denovo {
   call split_gvcf {
     input:
     gvcf = localize_path.local_pb_gvcf,
-    index = localize_path.local_pb_gvcf_index
+    index = localize_path.local_pb_gvcf_index,
+    header = localize_path.header
   }
 
   # for each chr vcf, call de novos
@@ -69,8 +70,6 @@ workflow gvcf_to_denovo {
   output {
 
     Array[File] split_shards = split_gvcf.out
-
-    File split_gvcf_header = split_gvcf.header
       
   }
 
@@ -104,6 +103,8 @@ task localize_path {
     gsutil cp $PB_PATH ./tmp.pb.g.vcf.gz
     gsutil cp $PB_PATH".tbi" ./tmp.pb.g.vcf.gz.tbi
 
+    ## PARSE HEADER LINE
+    zgrep "^#" ./tmp.pb.g.vcf.gz > header.txt
 
     ## LOCALIZE FATHER AND MOTHER
     FA_PATH=`cat tmp.fa_path.txt`
@@ -146,6 +147,8 @@ task localize_path {
     File local_fa_gvcf_index = "tmp.fa.g.vcf.gz.tbi"
     File local_mo_gvcf = "tmp.mo.g.vcf.gz"
     File local_mo_gvcf_index = "tmp.mo.g.vcf.gz.tbi"
+
+    File header = "header.txt"
   }
 }
 
@@ -155,15 +158,14 @@ task split_gvcf {
   File gvcf # input gvcf
   File index # input gvcf index
   String outprefix = basename(gvcf, '.g.vcf.gz')
+  File header # header from localize_paths step
 
   command {
-    # pull header lines
-    zcat < ${gvcf} | grep "^#" ${gvcf} > header.txt
 
     # split vcf by chromosome - use tabix -l to get all contig names from tabix index
     for i in $(tabix -l ${gvcf})
     do 
-      (cat header.txt; tabix ${gvcf} $i)  > "${outprefix}.$i.vcf"
+      (cat ${header}; tabix ${gvcf} $i)  > "${outprefix}.$i.vcf"
     done
 
     ## get full directory paths
@@ -175,7 +177,6 @@ task split_gvcf {
     Array[File] out = glob("*.vcf") 
     File filepaths = "file_full_paths.txt"
 
-    File header = "header.txt"
   }
 
   runtime {
@@ -210,8 +211,6 @@ task call_denovos {
 
   command {
 
-    cat ${sample_vcf} | head -n 100 > header.${shard}.txt
-
     python ${script} -s ${sample_id} -p ${sample_vcf} -f ${father_gvcf} -m ${mother_gvcf} -r ${ped} -x ${pb_min_alt} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
   }
 
@@ -223,7 +222,6 @@ task call_denovos {
   output {
     File outfile = "${output_file}"
 
-    File header = "header.${shard}.txt"
   }
 }
 
@@ -240,7 +238,7 @@ task gather_shards {
       cat $file >> "tmp.cat.denovo.raw.txt"
     done < ${write_lines(shards)};
 
-    grep "^id" "tmp.cat.denovo.raw.txt" > "header.txt" 
+    grep "^id" "tmp.cat.denovo.raw.txt" | head -n 1 > "header.txt" 
 
     (cat header.txt; grep -v "^id" "tmp.cat.denovo.raw.txt") > "${prefix}${suffix}"
 
