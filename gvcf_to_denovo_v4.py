@@ -341,7 +341,7 @@ with open(sample_gvcf, 'r') as f:
 
                   ## APPLY DE NOVO CALLING CRITERIA
                   if not (int(pb_refdp) == 0): # ignore hom alt sites
-                    if int(pb_vaf) >= int(pb_min_vaf):
+                    if float(pb_vaf) >= float(pb_min_vaf):
                       if int(fa_altdp) <= int(par_max_alt) and int(mo_altdp) <= int(par_max_alt):
                         if int(fa_dp) >= int(par_min_dp) and int(mo_dp) >= int(par_min_dp):
                           out = map(str, [sample_id, chr.strip('chr'), pos, ref, a, pb_refdp, pb_altdp, pb_dp, adfref, adfalt, adrref, adralt])
