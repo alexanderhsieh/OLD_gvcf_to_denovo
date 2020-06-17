@@ -234,7 +234,7 @@ task call_denovos {
 
   File sample_map
   File ped
-  Int pb_min_vaf
+  Float pb_min_vaf
   Int par_max_alt
   Int par_min_dp
 
