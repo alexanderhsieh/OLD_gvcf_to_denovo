@@ -193,6 +193,8 @@ task split_gvcf {
   String outprefix = basename(gvcf, '.g.vcf.gz')
   File header # header from localize_paths step
 
+  Int disk_size = 100 # start with 100G
+
   command {
 
     # split vcf by chromosome - use tabix -l to get all contig names from tabix index
@@ -214,6 +216,8 @@ task split_gvcf {
 
   runtime {
     docker: "gatksv/sv-base-mini:cbb1fc"
+    disks: "local-disk " + disk_size + " HDD"
+    bootDiskSizeGb: disk_size
   }
 
 }
