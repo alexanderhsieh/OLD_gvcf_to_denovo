@@ -252,7 +252,7 @@ task call_denovos {
 
     python ${script} -s ${sample_id} -p ${sample_vcf} -f ${father_gvcf} -m ${mother_gvcf} -r ${ped} -x ${pb_min_vaf} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
 
-    head -n 1 ${output_file} = "header.txt"
+    head -n 1 ${output_file} > "header.txt"
   }
 
   runtime {
