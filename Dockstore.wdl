@@ -256,7 +256,7 @@ task call_denovos {
   }
 
   runtime {
-    docker: "gatksv/sv-base-mini:cbb1fc"
+    docker: "mwalker174/sv-pipeline:mw-00c-stitch-65060a1"
     preemptible: 3
     maxRetries: 3
   }
