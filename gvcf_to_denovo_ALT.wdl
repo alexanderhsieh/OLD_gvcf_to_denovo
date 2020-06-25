@@ -166,7 +166,7 @@ task merge_trio_gvcf {
   File mo_gvcf
   File mo_idx
 
-  String outfname = "${sample_id}.TRIO.g.vcf"
+  String outfname = "${sample_id}.TRIO.g.vcf.gz"
 
   command {
     bcftools merge ${pb_gvcf} ${fa_gvcf} ${mo_gvcf} -o ${outfname} -O z
