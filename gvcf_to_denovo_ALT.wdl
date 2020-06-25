@@ -172,6 +172,8 @@ task merge_trio_gvcf {
     bcftools merge ${pb_gvcf} ${fa_gvcf} ${mo_gvcf} -o ${outfname} -O z
 
     tabix -p vcf ${outfname}
+
+    
   }
 
   runtime {
