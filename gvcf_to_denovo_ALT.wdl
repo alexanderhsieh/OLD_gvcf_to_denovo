@@ -173,9 +173,9 @@ task localize_path {
     fi
 
     ## parse sample name from vcf path to be passed downstream
-    PB_ID=`basename $PB_PATH '.g.vcf.gz'`
-    FA_ID=`basename $FA_PATH '.g.vcf.gz'`
-    MO_ID=`basename $MO_PATH '.g.vcf.gz'`
+    basename $PB_PATH '.g.vcf.gz' > pb_id.txt
+    basename $FA_PATH '.g.vcf.gz' > fa_id.txt
+    basename $MO_PATH '.g.vcf.gz' > mo_idx.txt
 
   }
 
@@ -195,9 +195,9 @@ task localize_path {
 
     File header = "header.txt"
 
-    String new_sample_id = "$PB_ID"
-    String new_father_id = "$FA_ID"
-    String new_mother_id = "$MO_ID"
+    File new_sample_id = "pb_id.txt"
+    File new_father_id = "fa_id.txt"
+    File new_mother_id = "mo_id.txt"
 
   }
 }
@@ -217,7 +217,7 @@ task merge_trio_gvcf {
   String outfname = "${sample_id}.TRIO.g.vcf.gz"
 
   command {
-    bcftools merge ${pb_gvcf} ${fa_gvcf} ${mo_gvcf} -o ${outfname} -O z
+    bcftools merge -g ${pb_gvcf} ${fa_gvcf} ${mo_gvcf} -o ${outfname} -O z
 
     tabix -p vcf ${outfname}
 
@@ -276,9 +276,9 @@ task split_gvcf {
 task call_denovos {
   File script
   
-  String sample_id
-  String father_id
-  String mother_id
+  File sample_id
+  File father_id
+  File mother_id
 
   File gvcf
 
@@ -292,7 +292,7 @@ task call_denovos {
 
   command {
 
-    python ${script} -s ${sample_id} -f ${father_id} -m ${mother_id} -g ${gvcf} -x ${pb_min_vaf} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
+    python ${script} -s ${read_string(sample_id)} -f ${read_string(father_id)} -m ${read_string(mother_id)} -g ${gvcf} -x ${pb_min_vaf} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
 
     head -n 1 ${output_file} > "header.txt"
   }
