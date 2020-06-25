@@ -175,7 +175,7 @@ task localize_path {
     ## parse sample name from vcf path to be passed downstream
     basename $PB_PATH '.g.vcf.gz' > pb_id.txt
     basename $FA_PATH '.g.vcf.gz' > fa_id.txt
-    basename $MO_PATH '.g.vcf.gz' > mo_idx.txt
+    basename $MO_PATH '.g.vcf.gz' > mo_id.txt
 
   }
 
