@@ -282,11 +282,6 @@ task call_denovos {
 
   File gvcf
 
-  File father_gvcf
-  File father_gvcf_index
-  File mother_gvcf
-  File mother_gvcf_index
-
   Float pb_min_vaf
   Int par_max_alt
   Int par_min_dp
