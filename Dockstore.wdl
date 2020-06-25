@@ -80,8 +80,8 @@ workflow gvcf_to_denovo {
       input:
       script = dn_script,
       sample_id = localize_path.new_sample_id,
-      father_id = localize_path.new_father_id
-      mother_id = localize_path.new_mother_id
+      father_id = localize_path.new_father_id,
+      mother_id = localize_path.new_mother_id,
 
       gvcf = split_gvcf.out[idx],
   
@@ -173,9 +173,9 @@ task localize_path {
     fi
 
     ## parse sample name from vcf path to be passed downstream
-    PB_ID=`awk -F '/' '{print $NF}' $PB_PATH | awk -F '.g.vcf.gz' '{print $1}'`
-    FA_ID=`awk -F '/' '{print $NF}' $FA_PATH | awk -F '.g.vcf.gz' '{print $1}'`
-    MO_ID=`awk -F '/' '{print $NF}' $MO_PATH | awk -F '.g.vcf.gz' '{print $1}'`
+    PB_ID=`basename $PB_PATH '.g.vcf.gz'`
+    FA_ID=`basename $FA_PATH '.g.vcf.gz'`
+    MO_ID=`basename $MO_PATH '.g.vcf.gz'`
 
   }
 
@@ -195,16 +195,17 @@ task localize_path {
 
     File header = "header.txt"
 
-    String new_sample_id = "$PBID"
-    String new_father_id = "$FAID"
-    String new_mother_id = "$MOID"
+    String new_sample_id = "$PB_ID"
+    String new_father_id = "$FA_ID"
+    String new_mother_id = "$MO_ID"
 
   }
 }
 
 ## merges proband, father, mother gvcfs into trio gvcf
 task merge_trio_gvcf {
-
+  
+  String sample_id
 
   File pb_gvcf
   File pb_idx
