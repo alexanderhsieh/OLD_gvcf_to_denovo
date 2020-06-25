@@ -257,7 +257,8 @@ task call_denovos {
 
   runtime {
     docker: "gatksv/sv-base-mini:cbb1fc"
-
+    preemptible: 3
+    maxRetries: 3
   }
 
   output {
@@ -291,6 +292,8 @@ task gather_shards {
 
   runtime {
     docker: "gatksv/sv-base-mini:cbb1fc"
+    preemptible: 3
+    maxRetries: 3
   }
 
   output {
