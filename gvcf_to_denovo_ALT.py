@@ -165,8 +165,8 @@ def parse_parent(gvcf, region, chr, pos, ref, alt):
 #outf = open(output_file, 'w', buffering=bufsize)
 outf = open(output_file, 'w')
 
-cmd2 = 'zcat < %s | grep -v "#"| wc -l'%(gvcf)
-#tot = int(subprocess.check_output(cmd2, shell=True, encoding='utf8').strip().split(' ')[0])
+#cmd2 = 'zcat < %s | grep -v "#"| wc -l'%(gvcf)
+cmd2 = 'cat %s | grep -v "#"| wc -l'%(gvcf)
 tot = int(subprocess.Popen(cmd2, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8').communicate()[0].strip().split(' ')[0])
 print('## TOTAL VARIANT LINES: %s'%(str(tot)))
 
@@ -184,142 +184,144 @@ dnct = 0
 
 ## iterate over gVCF
 
-with gzip.open(gvcf, 'rb') as f:
-  with io.TextIOWrapper(f, encoding='utf-8') as decodef:  
-    for line in decodef:
+#with gzip.open(gvcf, 'rb') as f:
+#  with io.TextIOWrapper(f, encoding='utf-8') as decodef:  
+#    for line in decodef:
 
-      tmp = line.strip().split('\t')
+with open(gvcf, 'r') as f:
+  for line in f:
+    tmp = line.strip().split('\t')
 
-      ## handle vcf header information
-      if line.startswith('##'):
-        continue
-      
-      ## handle vcf header containing column information
-      if line.startswith('#CHROM'):
-        idx = {col:index for index, col in enumerate(tmp)}
+    ## handle vcf header information
+    if line.startswith('##'):
+      continue
+    
+    ## handle vcf header containing column information
+    if line.startswith('#CHROM'):
+      idx = {col:index for index, col in enumerate(tmp)}
 
-      ## handle variant lines
-      else:
-        i += 1
-        if i%10000 == 0:
-          print('## %d/%d lines processed ... '%(i, tot))
-
-
-        ## initialize values to avoid iteration bugs
-        chr, pos, ref, alt = '', '', '',''
-        region = ''
-        info = ''
-        fmt, gt = [], []
-        gtd = {}
+    ## handle variant lines
+    else:
+      i += 1
+      if i%10000 == 0:
+        print('## %d/%d lines processed ... '%(i, tot))
 
 
-        ## ignore non-variant blocks 
-        if not 'END=' in line.strip():
-          
-          ## get proband variant information
-          chr, pos, ref = tmp[idx['#CHROM']], tmp[idx['POS']], tmp[idx['REF']]
+      ## initialize values to avoid iteration bugs
+      chr, pos, ref, alt = '', '', '',''
+      region = ''
+      info = ''
+      fmt, gt = [], []
+      gtd = {}
 
 
-
-          ## parse alt allele
-          alt = tmp[idx['ALT']].strip(',<NON_REF>')
-
-          
-          ## how to handle multiallelic sites? e.g. chr1    1646352 .       A       C,G,<NON_REF>
-          ## iterate over all alternate alleles present in ALT
-          for a in alt.split(','):
-
-
-            if not a == '*': # ignore point deletions for now; messy when matching alleles with parents
-              if len(ref) == 1 and len(a) == 1: # ignore indels for now;
-                
-                
-                # Get index of current alternate allele
-                pb_altidx = alt.split(',').index(a) + 1 
-
-                # get region for tabixing parents
-                region = chr + ':' + pos + '-' + pos
+      ## ignore non-variant blocks 
+      if not 'END=' in line.strip():
+        
+        ## get proband variant information
+        chr, pos, ref = tmp[idx['#CHROM']], tmp[idx['POS']], tmp[idx['REF']]
 
 
 
+        ## parse alt allele
+        alt = tmp[idx['ALT']].strip(',<NON_REF>')
 
-                # save INFO field
-                info = tmp[idx['INFO']]
-
-                # create dictionary of FORMAT:GT mapping
-                fmt = tmp[idx['FORMAT']].split(':')
-                
-                pb_gt = tmp[idx[sample_id]].split(':') ## ASSUMES THAT SAMPLE GENOTYPE INFORMATION IS IN THE LAST COLUMN; didn't use ID since column ID differs from sample id....
-                pb_gtd = dict(zip(fmt, pb_gt)) # e.g. {'GT': '0/1', 'AD': '5,7,0', 'GQ': '99', 'PL': '157,0,104,172,125,297', 'SB': '5,0,7,0', 'DP': '12'}
-
-                fa_gt = tmp[idx[faid]].split(':')
-                fa_gtd = dict(zip(fmt, fa_gt))
-
-                mo_gt = tmp[idx[moid]].split(':')
-                mo_gtd = dict(zip(fmt, mo_gt))
-
-                ## CHECK THAT ALL NECESSARY INFORMATION IS PRESENT
-                #if not (pb_gtd['GT'] == './.'): ## ignore sites with missing genotypes
-                #  if ('AD'in pb_gtd) and ('DP' in pb_gtd): # ignore sites with no AD or DP information
-                if not './.' in [pb_gtd['GT'], fa_gtd['GT'], mo_gtd['GT']]:
-                  if 'AD' in pb_gtd and 'DP' in pb_gtd and 'AD' in fa_gtd and 'DP' in fa_gtd and 'AD' in mo_gtd and 'DP' in mo_gtd:
+        
+        ## how to handle multiallelic sites? e.g. chr1    1646352 .       A       C,G,<NON_REF>
+        ## iterate over all alternate alleles present in ALT
+        for a in alt.split(','):
 
 
-                    ## parse strand-specific allelic depth information
-                    adf = pb_gtd['F1R2']
-                    adr = pb_gtd['F2R1']
+          if not a == '*': # ignore point deletions for now; messy when matching alleles with parents
+            if len(ref) == 1 and len(a) == 1: # ignore indels for now;
+              
+              
+              # Get index of current alternate allele
+              pb_altidx = alt.split(',').index(a) + 1 
 
-                    adfref = adf.split(',')[0]
-                    adrref = adr.split(',')[0]
-
-                    adfalt = adf.split(',')[pb_altidx]
-                    adralt = adr.split(',')[pb_altidx]
-
-                    pb_refdp = pb_gtd['AD'].split(',')[0]
-                    pb_altdp = pb_gtd['AD'].split(',')[pb_altidx]
-                    if pb_altdp == '.':
-                      pb_altdp = '0'
-                    pb_dp = pb_gtd['DP']
-
-                    if int(pb_dp) > 0:
-                      pb_vaf = float(pb_altdp)/float(pb_dp)
-                    else:
-                      pb_vaf = 0.0
+              # get region for tabixing parents
+              region = chr + ':' + pos + '-' + pos
 
 
-                    ## parse parental information
-                    fa_refdp = fa_gtd['AD'].split(',')[0]
-                    fa_altdp = fa_gtd['AD'].split(',')[pb_altidx]
-                    if fa_altdp == '.':
-                      fa_altdp = '0'
-                    fa_dp = fa_gtd['DP']
 
-                    mo_refdp = mo_gtd['AD'].split(',')[0]
-                    mo_altdp = mo_gtd['AD'].split(',')[pb_altidx]
-                    if mo_altdp == '.':
-                      mo_altdp = '0'
-                    mo_dp = mo_gtd['DP']
-                    
 
-                    ## APPLY DE NOVO CALLING CRITERIA
-                    if not (int(pb_refdp) == 0): # ignore hom alt sites
-                      if float(pb_vaf) >= float(pb_min_vaf):
-                        if int(fa_altdp) <= int(par_max_alt) and int(mo_altdp) <= int(par_max_alt):
-                          if int(fa_dp) >= int(par_min_dp) and int(mo_dp) >= int(par_min_dp):
-                            out = map(str, [sample_id, chr.strip('chr'), pos, ref, a, pb_refdp, pb_altdp, pb_dp, adfref, adfalt, adrref, adralt])
+              # save INFO field
+              info = tmp[idx['INFO']]
 
-                            #print '\t'.join(out) + '\t' + '\t'.join(tmp) + '\t' + tmpfa_d['FORMAT'] + '\t' + tmpfa[-1] + '\t' + tmpmo_d['FORMAT'] + '\t' + tmpmo[-1]
-                            #outf.write('\t'.join(out) + '\t' + '\t'.join(tmp) + '\t' + tmpfa_d['FORMAT'] + '\t' + tmpfa[-1] + '\t' + tmpmo_d['FORMAT'] + '\t' + tmpmo[-1] + '\n')
-                            outstring = '\t'.join(out) + '\t' + '\t'.join(tmp) + '\t' + ':'.join(fa_gt) + '\t' + ':'.join(mo_gt)
-                            #print(outstring)
-                            outf.write(outstring + '\n')
-                            # deal with empty output?
-                            outf.flush()
-                            os.fsync(outf)
+              # create dictionary of FORMAT:GT mapping
+              fmt = tmp[idx['FORMAT']].split(':')
+              
+              pb_gt = tmp[idx[sample_id]].split(':') ## ASSUMES THAT SAMPLE GENOTYPE INFORMATION IS IN THE LAST COLUMN; didn't use ID since column ID differs from sample id....
+              pb_gtd = dict(zip(fmt, pb_gt)) # e.g. {'GT': '0/1', 'AD': '5,7,0', 'GQ': '99', 'PL': '157,0,104,172,125,297', 'SB': '5,0,7,0', 'DP': '12'}
 
-                            dnct += 1
+              fa_gt = tmp[idx[faid]].split(':')
+              fa_gtd = dict(zip(fmt, fa_gt))
 
-                            print('## %d de novo variants found ...'%(dnct))
+              mo_gt = tmp[idx[moid]].split(':')
+              mo_gtd = dict(zip(fmt, mo_gt))
+
+              ## CHECK THAT ALL NECESSARY INFORMATION IS PRESENT
+              #if not (pb_gtd['GT'] == './.'): ## ignore sites with missing genotypes
+              #  if ('AD'in pb_gtd) and ('DP' in pb_gtd): # ignore sites with no AD or DP information
+              if not './.' in [pb_gtd['GT'], fa_gtd['GT'], mo_gtd['GT']]:
+                if 'AD' in pb_gtd and 'DP' in pb_gtd and 'AD' in fa_gtd and 'DP' in fa_gtd and 'AD' in mo_gtd and 'DP' in mo_gtd:
+
+
+                  ## parse strand-specific allelic depth information
+                  adf = pb_gtd['F1R2']
+                  adr = pb_gtd['F2R1']
+
+                  adfref = adf.split(',')[0]
+                  adrref = adr.split(',')[0]
+
+                  adfalt = adf.split(',')[pb_altidx]
+                  adralt = adr.split(',')[pb_altidx]
+
+                  pb_refdp = pb_gtd['AD'].split(',')[0]
+                  pb_altdp = pb_gtd['AD'].split(',')[pb_altidx]
+                  if pb_altdp == '.':
+                    pb_altdp = '0'
+                  pb_dp = pb_gtd['DP']
+
+                  if int(pb_dp) > 0:
+                    pb_vaf = float(pb_altdp)/float(pb_dp)
+                  else:
+                    pb_vaf = 0.0
+
+
+                  ## parse parental information
+                  fa_refdp = fa_gtd['AD'].split(',')[0]
+                  fa_altdp = fa_gtd['AD'].split(',')[pb_altidx]
+                  if fa_altdp == '.':
+                    fa_altdp = '0'
+                  fa_dp = fa_gtd['DP']
+
+                  mo_refdp = mo_gtd['AD'].split(',')[0]
+                  mo_altdp = mo_gtd['AD'].split(',')[pb_altidx]
+                  if mo_altdp == '.':
+                    mo_altdp = '0'
+                  mo_dp = mo_gtd['DP']
+                  
+
+                  ## APPLY DE NOVO CALLING CRITERIA
+                  if not (int(pb_refdp) == 0): # ignore hom alt sites
+                    if float(pb_vaf) >= float(pb_min_vaf):
+                      if int(fa_altdp) <= int(par_max_alt) and int(mo_altdp) <= int(par_max_alt):
+                        if int(fa_dp) >= int(par_min_dp) and int(mo_dp) >= int(par_min_dp):
+                          out = map(str, [sample_id, chr.strip('chr'), pos, ref, a, pb_refdp, pb_altdp, pb_dp, adfref, adfalt, adrref, adralt])
+
+                          #print '\t'.join(out) + '\t' + '\t'.join(tmp) + '\t' + tmpfa_d['FORMAT'] + '\t' + tmpfa[-1] + '\t' + tmpmo_d['FORMAT'] + '\t' + tmpmo[-1]
+                          #outf.write('\t'.join(out) + '\t' + '\t'.join(tmp) + '\t' + tmpfa_d['FORMAT'] + '\t' + tmpfa[-1] + '\t' + tmpmo_d['FORMAT'] + '\t' + tmpmo[-1] + '\n')
+                          outstring = '\t'.join(out) + '\t' + '\t'.join(tmp) + '\t' + ':'.join(fa_gt) + '\t' + ':'.join(mo_gt)
+                          #print(outstring)
+                          outf.write(outstring + '\n')
+                          # deal with empty output?
+                          outf.flush()
+                          os.fsync(outf)
+
+                          dnct += 1
+
+                          print('## %d de novo variants found ...'%(dnct))
 
 
 
