@@ -65,12 +65,51 @@ workflow gvcf_to_denovo {
     mo_idx = localize_path.local_mo_gvcf_index
   }
 
+  # Step *: split gvcf by chromosome
+  call split_gvcf {
+    input:
+    gvcf = localize_path.local_pb_gvcf,
+    index = localize_path.local_pb_gvcf_index,
+    header = localize_path.header
+  }
+
+  # for each chr vcf, call de novos
+  scatter (idx in range(length(split_gvcf.out))) {
+    
+    call call_denovos {
+      input:
+      script = dn_script,
+      sample_id = localize_path.new_sample_id,
+      father_id = localize_path.new_father_id
+      mother_id = localize_path.new_mother_id
+
+      gvcf = split_gvcf.out[idx],
+  
+      pb_min_vaf = pb_min_vaf,
+      par_max_alt = par_max_alt,
+      par_min_dp = par_min_dp,
+
+      shard = "${idx}"
+
+    }
+
+
+  }
+
+  # Step 3: gather shards into final output 
+  call gather_shards {
+    input:
+    shards = call_denovos.outfile,
+    headers = call_denovos.header,
+    prefix = sample_id,
+    suffix = output_suffix
+  }
+
+
   
   #Outputs a .txt file containing de novo SNVs
   output {
-
-    File trio_gvcf = merge_trio_gvcf.out_gvcf
-    File trio_gvcf_index = merge_trio_gvcf.out_idx
+    File denovos = gather_shards.out
       
   }
 
@@ -133,6 +172,10 @@ task localize_path {
       gsutil cp $MO_PATH".tbi" ./tmp.mo.g.vcf.gz.tbi
     fi
 
+    ## parse sample name from vcf path to be passed downstream
+    PB_ID=`awk -F '/' '{print $NF}' $PB_PATH | awk -F '.g.vcf.gz' '{print $1}'`
+    FA_ID=`awk -F '/' '{print $NF}' $FA_PATH | awk -F '.g.vcf.gz' '{print $1}'`
+    MO_ID=`awk -F '/' '{print $NF}' $MO_PATH | awk -F '.g.vcf.gz' '{print $1}'`
 
   }
 
@@ -151,13 +194,17 @@ task localize_path {
     File local_mo_gvcf_index = "tmp.mo.g.vcf.gz.tbi"
 
     File header = "header.txt"
+
+    String new_sample_id = "$PBID"
+    String new_father_id = "$FAID"
+    String new_mother_id = "$MOID"
+
   }
 }
 
 ## merges proband, father, mother gvcfs into trio gvcf
 task merge_trio_gvcf {
 
-  String sample_id
 
   File pb_gvcf
   File pb_idx
@@ -173,7 +220,7 @@ task merge_trio_gvcf {
 
     tabix -p vcf ${outfname}
 
-    
+
   }
 
   runtime {
@@ -227,18 +274,18 @@ task split_gvcf {
 #Calls denovos from proband gvcf + parent paths
 task call_denovos {
   File script
+  
   String sample_id
+  String father_id
+  String mother_id
 
-  File sample_vcf
+  File gvcf
 
   File father_gvcf
   File father_gvcf_index
   File mother_gvcf
   File mother_gvcf_index
 
-
-  File sample_map
-  File ped
   Float pb_min_vaf
   Int par_max_alt
   Int par_min_dp
@@ -249,7 +296,7 @@ task call_denovos {
 
   command {
 
-    python ${script} -s ${sample_id} -p ${sample_vcf} -f ${father_gvcf} -m ${mother_gvcf} -r ${ped} -x ${pb_min_vaf} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
+    python ${script} -s ${sample_id} -f ${father_id} -m ${mother_id} -g ${gvcf} -x ${pb_min_vaf} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
 
     head -n 1 ${output_file} > "header.txt"
   }
@@ -285,7 +332,7 @@ task gather_shards {
       cat $file | grep -v "^id" >> "tmp.cat.denovo.raw.txt"
     done < ${write_lines(shards)};
 
-    (cat ${head}); cat "tmp.cat.denovo.raw.txt") > "${prefix}${suffix}"
+    (cat ${head}; cat "tmp.cat.denovo.raw.txt") > "${prefix}${suffix}"
 
   }
 
