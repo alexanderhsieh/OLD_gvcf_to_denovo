@@ -54,56 +54,23 @@ workflow gvcf_to_denovo {
 
   }
 
-  # Step *: split gvcf by chromosome
-  call split_gvcf {
+  call merge_trio_gvcf{
     input:
-    gvcf = localize_path.local_pb_gvcf,
-    index = localize_path.local_pb_gvcf_index,
-    header = localize_path.header
+    sample_id = sample_id,
+    pb_gvcf = localize_path.local_pb_gvcf,
+    pb_idx = localize_path.local_pb_gvcf_index,
+    fa_gvcf = localize_path.local_fa_gvcf,
+    fa_idx = localize_path.local_fa_gvcf_index,
+    mo_gvcf = localize_path.local_mo_gvcf,
+    mo_idx = localize_path.local_mo_gvcf_index
   }
-
-  # for each chr vcf, call de novos
-  scatter (idx in range(length(split_gvcf.out))) {
-    
-    call call_denovos {
-      input:
-      script = dn_script,
-      sample_id = sample_id,
-
-      sample_vcf = split_gvcf.out[idx],
-      father_gvcf = localize_path.local_fa_gvcf,
-      father_gvcf_index = localize_path.local_fa_gvcf_index,
-      mother_gvcf = localize_path.local_mo_gvcf,
-      mother_gvcf_index = localize_path.local_mo_gvcf_index,
-
-      sample_map = sample_map,
-      ped = ped,
-      pb_min_vaf = pb_min_vaf,
-      par_max_alt = par_max_alt,
-      par_min_dp = par_min_dp,
-
-      shard = "${idx}"
-
-    }
-
-
-  }
-
-  # Step 3: gather shards into final output 
-  call gather_shards {
-    input:
-    shards = call_denovos.outfile,
-    headers = call_denovos.header,
-    prefix = sample_id,
-    suffix = output_suffix
-  }
-
 
   
   #Outputs a .txt file containing de novo SNVs
   output {
 
-    File denovos = gather_shards.out
+    File trio_gvcf = merge_trio_gvcf.out_gvcf
+    File trio_gvcf_index = merge_trio_gvcf.out_idx
       
   }
 
@@ -187,6 +154,37 @@ task localize_path {
   }
 }
 
+## merges proband, father, mother gvcfs into trio gvcf
+task merge_trio_gvcf {
+
+  String sample_id
+
+  File pb_gvcf
+  File pb_idx
+  File fa_gvcf
+  File fa_idx
+  File mo_gvcf
+  File mo_idx
+
+  String outfname = "${sample_id}.TRIO.g.vcf"
+
+  command {
+    bcftools merge ${pb_gvcf} ${fa_gvcf} ${mo_gvcf} -o ${outfname} -O z
+
+    tabix -p vcf ${outfname}
+  }
+
+  runtime {
+    docker: "gatksv/sv-base-mini:cbb1fc"
+  }
+
+  output {
+    File out_gvcf = "${outfname}"
+    File out_idx = "${outfname}.tbi"
+  }
+
+}
+
 ## splits vcf by chromosome
 task split_gvcf {
 
@@ -225,7 +223,6 @@ task split_gvcf {
 }
 
 #Calls denovos from proband gvcf + parent paths
-# NOTE: currently runs gsutil cp to localize proband gvcf
 task call_denovos {
   File script
   String sample_id
@@ -286,7 +283,7 @@ task gather_shards {
       cat $file | grep -v "^id" >> "tmp.cat.denovo.raw.txt"
     done < ${write_lines(shards)};
 
-    (cat ${head}; cat "tmp.cat.denovo.raw.txt") > "${prefix}${suffix}"
+    (cat ${head}); cat "tmp.cat.denovo.raw.txt") > "${prefix}${suffix}"
 
   }
 
