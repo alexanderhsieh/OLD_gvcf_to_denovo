@@ -169,7 +169,7 @@ task merge_trio_gvcf {
   String outfname = "${sample_id}.TRIO.g.vcf"
 
   command {
-    bcftools merge ${pb_gvcf} ${fa_gvcf} ${mo_gvcf} -o ${outfname} -O v
+    bcftools merge ${pb_gvcf} ${fa_gvcf} ${mo_gvcf} -o ${outfname} -O z
 
     tabix -p vcf ${outfname}
   }
