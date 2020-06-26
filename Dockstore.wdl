@@ -28,7 +28,10 @@ workflow gvcf_to_denovo {
   Int par_min_dp
   String output_suffix
 
+  File ref_fasta
+  File ref_fasta_index
 
+  ## TO UPDATE
   parameter_meta{
     localize_script: "parse_sample_map.py"
     dn_script: "gvcf_to_denovo_v4.py"
@@ -62,7 +65,9 @@ workflow gvcf_to_denovo {
     fa_gvcf = localize_path.local_fa_gvcf,
     fa_idx = localize_path.local_fa_gvcf_index,
     mo_gvcf = localize_path.local_mo_gvcf,
-    mo_idx = localize_path.local_mo_gvcf_index
+    mo_idx = localize_path.local_mo_gvcf_index,
+    ref_fasta = ref_fasta,
+    ref_fasta_index = ref_fasta_index
   }
 
   # Step *: split gvcf by chromosome
@@ -214,10 +219,13 @@ task merge_trio_gvcf {
   File mo_gvcf
   File mo_idx
 
+  File ref_fasta
+  File ref_fasta_index
+
   String outfname = "${sample_id}.TRIO.g.vcf.gz"
 
   command {
-    bcftools merge -g ${pb_gvcf} ${fa_gvcf} ${mo_gvcf} -o ${outfname} -O z
+    bcftools merge -g ${ref_fasta} ${pb_gvcf} ${fa_gvcf} ${mo_gvcf} -o ${outfname} -O z
 
     tabix -p vcf ${outfname}
 
