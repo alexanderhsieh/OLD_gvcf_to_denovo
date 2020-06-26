@@ -178,9 +178,12 @@ task localize_path {
     fi
 
     ## parse sample name from vcf path to be passed downstream
-    basename $PB_PATH '.g.vcf.gz' > pb_id.txt
-    basename $FA_PATH '.g.vcf.gz' > fa_id.txt
-    basename $MO_PATH '.g.vcf.gz' > mo_id.txt
+    PB_ID=`basename $PB_PATH '.g.vcf.gz'` 
+    echo $PB_ID > pb_id.txt
+    FA_ID=`basename $FA_PATH '.g.vcf.gz'`
+    echo $FA_ID > fa_id.txt
+    MO_ID=`basename $MO_PATH '.g.vcf.gz'`
+    echo $MO_ID > mo_id.txt
 
   }
 
@@ -225,7 +228,14 @@ task merge_trio_gvcf {
   String outfname = "${sample_id}.TRIO.g.vcf.gz"
 
   command {
-    bcftools merge -g ${ref_fasta} ${pb_gvcf} ${fa_gvcf} ${mo_gvcf} -o ${outfname} -O z
+    bcftools annotate -x FORMAT/PL ${pb_gvcf} -o "tmp.pb.no_PL.g.vcf.gz" -O z
+    bcftools annotate -x FORMAT/PL ${fa_gvcf} -o "tmp.fa.no_PL.g.vcf.gz" -O z
+    bcftools annotate -x FORMAT/PL ${mo_gvcf} -o "tmp.mo.no_PL.g.vcf.gz" -O z
+
+
+    #bcftools merge -g ${ref_fasta} ${pb_gvcf} ${fa_gvcf} ${mo_gvcf} -o ${outfname} -O z
+    bcftools merge -g ${ref_fasta} "tmp.pb.no_PL.g.vcf.gz" "tmp.fa.no_PL.g.vcf.gz" "tmp.mo.no_PL.g.vcf.gz" -o ${outfname} -O z
+
 
     tabix -p vcf ${outfname}
 
