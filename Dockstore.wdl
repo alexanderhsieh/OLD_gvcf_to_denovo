@@ -228,9 +228,13 @@ task merge_trio_gvcf {
   String outfname = "${sample_id}.TRIO.g.vcf.gz"
 
   command {
-    bcftools annotate -x FORMAT/PL ${pb_gvcf} -o "tmp.pb.no_PL.g.vcf.gz" -O z
-    bcftools annotate -x FORMAT/PL ${fa_gvcf} -o "tmp.fa.no_PL.g.vcf.gz" -O z
-    bcftools annotate -x FORMAT/PL ${mo_gvcf} -o "tmp.mo.no_PL.g.vcf.gz" -O z
+    bcftools annotate -x FORMAT/PL ${pb_gvcf} -o "tmp.pb.no_PL.g.vcf" -O v
+    bcftools annotate -x FORMAT/PL ${fa_gvcf} -o "tmp.fa.no_PL.g.vcf" -O v
+    bcftools annotate -x FORMAT/PL ${mo_gvcf} -o "tmp.mo.no_PL.g.vcf" -O v
+
+    bgzip "tmp.pb.no_PL.g.vcf"
+    bgzip "tmp.fa.no_PL.g.vcf"
+    bgzip "tmp.mo.no_PL.g.vcf"
 
     tabix -p vcf "tmp.pb.no_PL.g.vcf.gz"
     tabix -p vcf "tmp.fa.no_PL.g.vcf.gz"
@@ -313,7 +317,13 @@ task call_denovos {
 
   command {
 
-    python ${script} -s ${read_string(sample_id)} -f ${read_string(father_id)} -m ${read_string(mother_id)} -g ${gvcf} -x ${pb_min_vaf} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
+    S_ID=`cat ${sample_id}`
+    FA_ID=`cat ${father_id}`
+    MO_ID=`cat ${mother_id}`
+
+    python ${script} -s "$S_ID" -f "$FA_ID" -m "$MO_ID" -g ${gvcf} -x ${pb_min_vaf} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
+
+    #python ${script} -s ${read_string(sample_id)} -f ${read_string(father_id)} -m ${read_string(mother_id)} -g ${gvcf} -x ${pb_min_vaf} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
 
     head -n 1 ${output_file} > "header.txt"
   }
