@@ -232,6 +232,9 @@ task merge_trio_gvcf {
     bcftools annotate -x FORMAT/PL ${fa_gvcf} -o "tmp.fa.no_PL.g.vcf.gz" -O z
     bcftools annotate -x FORMAT/PL ${mo_gvcf} -o "tmp.mo.no_PL.g.vcf.gz" -O z
 
+    tabix -p vcf "tmp.pb.no_PL.g.vcf.gz"
+    tabix -p vcf "tmp.fa.no_PL.g.vcf.gz"
+    tabix -p vcf "tmp.mo.no_PL.g.vcf.gz"
 
     #bcftools merge -g ${ref_fasta} ${pb_gvcf} ${fa_gvcf} ${mo_gvcf} -o ${outfname} -O z
     bcftools merge -g ${ref_fasta} "tmp.pb.no_PL.g.vcf.gz" "tmp.fa.no_PL.g.vcf.gz" "tmp.mo.no_PL.g.vcf.gz" -o ${outfname} -O z
