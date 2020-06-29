@@ -21,6 +21,8 @@ workflow gvcf_to_denovo {
   File localize_script
   File dn_script
   String sample_id 
+  File sample_gvcf
+  File sample_gvcf_index
   File sample_map
   File ped
   Float pb_min_vaf
@@ -45,7 +47,7 @@ workflow gvcf_to_denovo {
     email: "ahsieh@broadinstitute.org"
   }
 
-  call localize_path{
+  call parse_parent_paths {
     input:
     script = localize_script,
     sample_map = sample_map,
@@ -57,9 +59,8 @@ workflow gvcf_to_denovo {
   # Step *: split gvcf by chromosome
   call split_gvcf {
     input:
-    gvcf = localize_path.local_pb_gvcf,
-    index = localize_path.local_pb_gvcf_index,
-    header = localize_path.header
+    gvcf = sample_gvcf,
+    index = sample_gvcf_index
   }
 
   # for each chr vcf, call de novos
@@ -70,11 +71,9 @@ workflow gvcf_to_denovo {
       script = dn_script,
       sample_id = sample_id,
 
-      sample_vcf = split_gvcf.out[idx],
-      father_gvcf = localize_path.local_fa_gvcf,
-      father_gvcf_index = localize_path.local_fa_gvcf_index,
-      mother_gvcf = localize_path.local_mo_gvcf,
-      mother_gvcf_index = localize_path.local_mo_gvcf_index,
+      sample_gvcf = split_gvcf.out[idx],
+      father_gvcf_path = parse_parent_paths.father_path,
+      mother_gvcf_path = parse_parent_paths.mother_path,
 
       sample_map = sample_map,
       ped = ped,
@@ -168,7 +167,7 @@ task split_gvcf {
 
   command {
 
-    sed -n '1p' ${gvcf} > "header.txt"
+    tabix -H ${gvcf} > "header.txt"
 
     # split vcf by chromosome - use tabix -l to get all contig names from tabix index
     for i in $(tabix -l ${gvcf})
@@ -221,7 +220,7 @@ task call_denovos {
     FA_PATH=`cat father_gvcf_path`
     MO_PATH=`cat mother_gvcf_path`
 
-    python ${script} -s ${sample_id} -p ${sample_gvcf} -f ${father_gvcf} -m ${mother_gvcf} -r ${ped} -x ${pb_min_vaf} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
+    python ${script} -s ${sample_id} -p ${sample_gvcf} -f ${father_gvcf_path} -m ${mother_gvcf_path} -r ${ped} -x ${pb_min_vaf} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
 
     head -n 1 ${output_file} > "header.txt"
   }
