@@ -220,7 +220,7 @@ task call_denovos {
     FA_PATH=`cat ${father_gvcf_path}`
     MO_PATH=`cat ${mother_gvcf_path}`
 
-    python ${script} -s ${sample_id} -p ${sample_gvcf} -f ${father_gvcf_path} -m ${mother_gvcf_path} -r ${ped} -x ${pb_min_vaf} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
+    python ${script} -s ${sample_id} -p ${sample_gvcf} -f $FA_PATH -m $MO_PATH -r ${ped} -x ${pb_min_vaf} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
 
     head -n 1 ${output_file} > "header.txt"
   }
