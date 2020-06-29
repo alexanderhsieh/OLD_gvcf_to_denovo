@@ -217,8 +217,8 @@ task call_denovos {
 
   command {
 
-    FA_PATH=`cat father_gvcf_path`
-    MO_PATH=`cat mother_gvcf_path`
+    FA_PATH=`cat ${father_gvcf_path}`
+    MO_PATH=`cat ${mother_gvcf_path}`
 
     python ${script} -s ${sample_id} -p ${sample_gvcf} -f ${father_gvcf_path} -m ${mother_gvcf_path} -r ${ped} -x ${pb_min_vaf} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
 
