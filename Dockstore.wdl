@@ -228,20 +228,8 @@ task merge_trio_gvcf {
   String outfname = "${sample_id}.TRIO.g.vcf.gz"
 
   command {
-    bcftools annotate -x FORMAT/PL ${pb_gvcf} -o "tmp.pb.no_PL.g.vcf" -O v
-    bcftools annotate -x FORMAT/PL ${fa_gvcf} -o "tmp.fa.no_PL.g.vcf" -O v
-    bcftools annotate -x FORMAT/PL ${mo_gvcf} -o "tmp.mo.no_PL.g.vcf" -O v
 
-    bgzip "tmp.pb.no_PL.g.vcf"
-    bgzip "tmp.fa.no_PL.g.vcf"
-    bgzip "tmp.mo.no_PL.g.vcf"
-
-    tabix -p vcf "tmp.pb.no_PL.g.vcf.gz"
-    tabix -p vcf "tmp.fa.no_PL.g.vcf.gz"
-    tabix -p vcf "tmp.mo.no_PL.g.vcf.gz"
-
-    #bcftools merge -g ${ref_fasta} ${pb_gvcf} ${fa_gvcf} ${mo_gvcf} -o ${outfname} -O z
-    bcftools merge -g ${ref_fasta} "tmp.pb.no_PL.g.vcf.gz" "tmp.fa.no_PL.g.vcf.gz" "tmp.mo.no_PL.g.vcf.gz" -o ${outfname} -O z
+    bcftools merge -g ${ref_fasta} "tmp.pb.no_PL.g.vcf.gz" "tmp.fa.no_PL.g.vcf.gz" "tmp.mo.no_PL.g.vcf.gz" -o ${outfname} -O z -m all
 
 
     tabix -p vcf ${outfname}
@@ -251,6 +239,9 @@ task merge_trio_gvcf {
 
   runtime {
     docker: "gatksv/sv-base-mini:cbb1fc"
+    memory: "8 GiB"
+    preemptible_tries: 3
+    max_retries: 3
   }
 
   output {

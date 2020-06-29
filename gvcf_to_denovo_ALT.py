@@ -203,7 +203,7 @@ with open(gvcf, 'r') as f:
     ## handle variant lines
     else:
       i += 1
-      if i%10000 == 0:
+      if i%100000 == 0:
         print('## %d/%d lines processed ... '%(i, tot))
 
 
@@ -216,10 +216,13 @@ with open(gvcf, 'r') as f:
 
 
       ## ignore non-variant blocks 
-      if not 'END=' in line.strip():
+      if not tmp[idx['INFO']].startswith('END='):
         
         ## get proband variant information
         chr, pos, ref = tmp[idx['#CHROM']], tmp[idx['POS']], tmp[idx['REF']]
+
+        # get region for tabixing parents
+        region = chr + ':' + pos + '-' + pos
 
 
 
@@ -233,95 +236,151 @@ with open(gvcf, 'r') as f:
 
 
           if not a == '*': # ignore point deletions for now; messy when matching alleles with parents
-            if len(ref) == 1 and len(a) == 1: # ignore indels for now;
-              
-              
-              # Get index of current alternate allele
-              pb_altidx = alt.split(',').index(a) + 1 
+            #if len(ref) == 1 and len(a) == 1: # ignore indels for now;
+            if len(ref) == 1 and len(ref) == len(a):  
 
-              # get region for tabixing parents
-              region = chr + ':' + pos + '-' + pos
+              if len(tmp) == len(idx.keys()): # ignore lines with missing fields
+                
+                # Get index of current alternate allele
+                pb_altidx = alt.split(',').index(a) + 1
 
-
-
-
-              # save INFO field
-              info = tmp[idx['INFO']]
-
-              # create dictionary of FORMAT:GT mapping
-              fmt = tmp[idx['FORMAT']].split(':')
-              
-              pb_gt = tmp[idx[sample_id]].split(':') ## ASSUMES THAT SAMPLE GENOTYPE INFORMATION IS IN THE LAST COLUMN; didn't use ID since column ID differs from sample id....
-              pb_gtd = dict(zip(fmt, pb_gt)) # e.g. {'GT': '0/1', 'AD': '5,7,0', 'GQ': '99', 'PL': '157,0,104,172,125,297', 'SB': '5,0,7,0', 'DP': '12'}
-
-              fa_gt = tmp[idx[faid]].split(':')
-              fa_gtd = dict(zip(fmt, fa_gt))
-
-              mo_gt = tmp[idx[moid]].split(':')
-              mo_gtd = dict(zip(fmt, mo_gt))
-
-              ## CHECK THAT ALL NECESSARY INFORMATION IS PRESENT
-              #if not (pb_gtd['GT'] == './.'): ## ignore sites with missing genotypes
-              #  if ('AD'in pb_gtd) and ('DP' in pb_gtd): # ignore sites with no AD or DP information
-              if not './.' in [pb_gtd['GT'], fa_gtd['GT'], mo_gtd['GT']]:
-                if 'AD' in pb_gtd and 'DP' in pb_gtd and 'AD' in fa_gtd and 'DP' in fa_gtd and 'AD' in mo_gtd and 'DP' in mo_gtd:
+                
 
 
-                  ## parse strand-specific allelic depth information
-                  adf = pb_gtd['F1R2']
-                  adr = pb_gtd['F2R1']
-
-                  adfref = adf.split(',')[0]
-                  adrref = adr.split(',')[0]
-
-                  adfalt = adf.split(',')[pb_altidx]
-                  adralt = adr.split(',')[pb_altidx]
-
-                  pb_refdp = pb_gtd['AD'].split(',')[0]
-                  pb_altdp = pb_gtd['AD'].split(',')[pb_altidx]
-                  if pb_altdp == '.':
-                    pb_altdp = '0'
-                  pb_dp = pb_gtd['DP']
-
-                  if int(pb_dp) > 0:
-                    pb_vaf = float(pb_altdp)/float(pb_dp)
-                  else:
-                    pb_vaf = 0.0
+                
 
 
-                  ## parse parental information
-                  fa_refdp = fa_gtd['AD'].split(',')[0]
-                  fa_altdp = fa_gtd['AD'].split(',')[pb_altidx]
-                  if fa_altdp == '.':
-                    fa_altdp = '0'
-                  fa_dp = fa_gtd['DP']
 
-                  mo_refdp = mo_gtd['AD'].split(',')[0]
-                  mo_altdp = mo_gtd['AD'].split(',')[pb_altidx]
-                  if mo_altdp == '.':
-                    mo_altdp = '0'
-                  mo_dp = mo_gtd['DP']
+
+
+
+                # save INFO field
+                info = tmp[idx['INFO']]
+
+                # create dictionary of FORMAT:GT mapping
+                fmt = tmp[idx['FORMAT']].split(':')
+                
+                '''
+                try:
+                  fmt = tmp[idx['FORMAT']].split(':')
+                except:
+                  print('')
+                  print('## ERROR - MISSING FORMAT FIELD')
+                  print(line)
+                  sys.exit()
+                '''
+
+
+                pb_gt = tmp[idx[sample_id]].split(':') ## ASSUMES THAT SAMPLE GENOTYPE INFORMATION IS IN THE LAST COLUMN; didn't use ID since column ID differs from sample id....
+                pb_gtd = dict(zip(fmt, pb_gt)) # e.g. {'GT': '0/1', 'AD': '5,7,0', 'GQ': '99', 'PL': '157,0,104,172,125,297', 'SB': '5,0,7,0', 'DP': '12'}
+
+                fa_gt = tmp[idx[faid]].split(':')
+                fa_gtd = dict(zip(fmt, fa_gt))
+
+                mo_gt = tmp[idx[moid]].split(':')
+                mo_gtd = dict(zip(fmt, mo_gt))
+
+                ## CHECK THAT ALL NECESSARY INFORMATION IS PRESENT
+                #if not (pb_gtd['GT'] == './.'): ## ignore sites with missing genotypes
+                #  if ('AD'in pb_gtd) and ('DP' in pb_gtd): # ignore sites with no AD or DP information
+                if not './.' in [pb_gtd['GT'], fa_gtd['GT'], mo_gtd['GT']]:
                   
+                  if 'AD' in pb_gtd and 'DP' in pb_gtd and 'AD' in fa_gtd and 'DP' in fa_gtd and 'AD' in mo_gtd and 'DP' in mo_gtd:
 
-                  ## APPLY DE NOVO CALLING CRITERIA
-                  if not (int(pb_refdp) == 0): # ignore hom alt sites
-                    if float(pb_vaf) >= float(pb_min_vaf):
-                      if int(fa_altdp) <= int(par_max_alt) and int(mo_altdp) <= int(par_max_alt):
-                        if int(fa_dp) >= int(par_min_dp) and int(mo_dp) >= int(par_min_dp):
-                          out = map(str, [sample_id, chr.strip('chr'), pos, ref, a, pb_refdp, pb_altdp, pb_dp, adfref, adfalt, adrref, adralt])
+                    if len(pb_gtd['AD'].split(',')) > 1: # ensure there is alternate allele read support
+                      #if not pb_gtd['GT'] in ['0/0', '0|0']:
+                        
+                      #print(line)
 
-                          #print '\t'.join(out) + '\t' + '\t'.join(tmp) + '\t' + tmpfa_d['FORMAT'] + '\t' + tmpfa[-1] + '\t' + tmpmo_d['FORMAT'] + '\t' + tmpmo[-1]
-                          #outf.write('\t'.join(out) + '\t' + '\t'.join(tmp) + '\t' + tmpfa_d['FORMAT'] + '\t' + tmpfa[-1] + '\t' + tmpmo_d['FORMAT'] + '\t' + tmpmo[-1] + '\n')
-                          outstring = '\t'.join(out) + '\t' + '\t'.join(tmp) + '\t' + ':'.join(fa_gt) + '\t' + ':'.join(mo_gt)
-                          #print(outstring)
-                          outf.write(outstring + '\n')
-                          # deal with empty output?
-                          outf.flush()
-                          os.fsync(outf)
 
-                          dnct += 1
+                      ## parse strand-specific allelic depth information
+                      adf = pb_gtd['F1R2']
+                      adr = pb_gtd['F2R1']
 
-                          print('## %d de novo variants found ...'%(dnct))
+                      adfref = adf.split(',')[0]
+                      adrref = adr.split(',')[0]
+
+                      adfalt = adf.split(',')[pb_altidx]
+                      adralt = adr.split(',')[pb_altidx]
+
+                      pb_refdp = pb_gtd['AD'].split(',')[0]
+                      pb_altdp = pb_gtd['AD'].split(',')[pb_altidx]
+                      if pb_altdp == '.':
+                        pb_altdp = '0'
+                      pb_dp = pb_gtd['DP']
+
+                      if int(pb_dp) > 0:
+                        pb_vaf = float(pb_altdp)/float(pb_dp)
+                      else:
+                        pb_vaf = 0.0
+
+
+                      ## parse parental information
+                      fa_dp = fa_gtd['DP']
+                      fa_refdp = fa_gtd['AD'].split(',')[0]
+
+                      if fa_gtd['AD'] == '.': # handle case where AD is just .
+                        fa_altdp = '0'
+                      else:
+                        fa_altdp = fa_gtd['AD'].split(',')[pb_altidx]
+                        if fa_altdp == '.': # handle case where AD is 10,.,3
+                          fa_altdp = '0'
+                      
+                      mo_dp = mo_gtd['DP']
+                      mo_refdp = mo_gtd['AD'].split(',')[0]
+                      #mo_altdp = mo_gtd['AD'].split(',')[pb_altidx]
+
+                      if mo_gtd['AD'] == '.': # handle case where AD is just .
+                        mo_altdp = '0'
+                      else:
+                        mo_altdp = mo_gtd['AD'].split(',')[pb_altidx]
+                        if mo_altdp == '.': # handle case where AD is 10,.,3
+                          mo_altdp = '0'
+                      
+                      '''
+                      ################################
+                      ## TESTING
+                      if chr == "chr1":
+                        if pos == "183629":
+
+                          print('')
+                          print(line)
+                          print('alt allele: %s'%(a))
+                          print('alt idx: %s'%(pb_altidx))
+                          print('pb_dp: %s'%(pb_dp))
+                          print('pb_altdp: %s'%(pb_altdp))
+                          print('fa_dp: %s'%(fa_dp))
+                          print('fa_altdp: %s'%(fa_altdp))
+                          print('mo_dp: %s'%(mo_dp))
+                          print('mo_altdp: %s'%(mo_altdp))
+                          print('')
+
+                        elif int(pos) > 183629:
+                          print(line)
+                          sys.exit()
+                      ################################
+                      '''
+                      
+
+                      ## APPLY DE NOVO CALLING CRITERIA
+                      if not (int(pb_refdp) == 0): # ignore hom alt sites
+                        if float(pb_vaf) >= float(pb_min_vaf):
+                          if int(fa_altdp) <= int(par_max_alt) and int(mo_altdp) <= int(par_max_alt):
+                            if int(fa_dp) >= int(par_min_dp) and int(mo_dp) >= int(par_min_dp):
+                              out = map(str, [sample_id, chr.strip('chr'), pos, ref, a, pb_refdp, pb_altdp, pb_dp, adfref, adfalt, adrref, adralt])
+
+                              #print '\t'.join(out) + '\t' + '\t'.join(tmp) + '\t' + tmpfa_d['FORMAT'] + '\t' + tmpfa[-1] + '\t' + tmpmo_d['FORMAT'] + '\t' + tmpmo[-1]
+                              #outf.write('\t'.join(out) + '\t' + '\t'.join(tmp) + '\t' + tmpfa_d['FORMAT'] + '\t' + tmpfa[-1] + '\t' + tmpmo_d['FORMAT'] + '\t' + tmpmo[-1] + '\n')
+                              outstring = '\t'.join(out) + '\t' + '\t'.join(tmp[:idx['FORMAT']+1]) + '\t' + ':'.join(pb_gt) + '\t' +  ':'.join(fa_gt) + '\t' + ':'.join(mo_gt)
+                              #print(outstring)
+                              outf.write(outstring + '\n')
+                              # deal with empty output?
+                              outf.flush()
+                              os.fsync(outf)
+
+                              dnct += 1
+
+                              print('## %d de novo variants found ...'%(dnct))
 
 
 
