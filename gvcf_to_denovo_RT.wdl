@@ -220,6 +220,11 @@ task call_denovos {
     FA_PATH=`cat ${father_gvcf_path}`
     MO_PATH=`cat ${mother_gvcf_path}`
 
+    GCS_OAUTH_TOKEN=`gcloud auth application-default print-access-token`
+
+    tabix $FA_PATH chr1:14653-14653 > tmp.fa.chr1_14653.txt
+    tabix $MO_PATH chr1:14653-14653 > tmp.mo.chr1_14653.txt
+
     python ${script} -s ${sample_id} -p ${sample_gvcf} -f $FA_PATH -m $MO_PATH -r ${ped} -x ${pb_min_vaf} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
 
     head -n 1 ${output_file} > "header.txt"
@@ -234,7 +239,7 @@ task call_denovos {
   output {
     File outfile = "${output_file}"
     File header = "header.txt"
-
+    
   }
 }
 
