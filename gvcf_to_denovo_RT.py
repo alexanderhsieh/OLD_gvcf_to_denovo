@@ -77,8 +77,6 @@ def parse_parent(gvcf, region, chr, pos, ref, alt):
   # GCS_OAUTH_TOKEN=`gcloud auth application-default print-access-token`
   # tabix -R region.merged.bed ~{splitfile} | bgzip -c > SR_1.txt.gz
   # gs://fc-8f6b542d-a30e-4164-92c6-40eb8887a470/3f0e5d0a-4da6-48d2-91ce-e675b23336cb/ExomeGermlineSingleSample/59f64ccd-2014-4d13-b3a9-edf6b6754b42/call-BamToGvcf/VariantCalling/b8dea78a-0037-473f-b3e2-153168339273/call-MergeVCFs/11003-fa.g.vcf.gz
-  gcs_cmd = 'GCS_OAUTH_TOKEN=`gcloud auth application-default print-access-token`'
-  tmp_gcs = subprocess.run(gcs_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8')
   tmp = subprocess.run('tabix %s %s'%(gvcf, region), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8').stdout
 
 
