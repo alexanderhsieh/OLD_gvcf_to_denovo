@@ -18,11 +18,14 @@
 ###########################################################################
 workflow gvcf_to_denovo {
   
-  File localize_script
   File dn_script
+
+  Array[File] trio_gvcf_array
+  Array[File] trio_gvcf_index_array
+  Array[String] trio_readgroup_ids
+
   String sample_id 
-  File sample_map
-  File ped
+
   Float pb_min_vaf
   Int par_max_alt
   Int par_min_dp
@@ -33,8 +36,7 @@ workflow gvcf_to_denovo {
 
   ## TO UPDATE
   parameter_meta{
-    localize_script: "parse_sample_map.py"
-    dn_script: "gvcf_to_denovo_v4.py"
+    dn_script: "gvcf_to_denovo_ALT.py"
     sample_id: "sample ID for which to call de novo SNVs"
     sample_map: "sample map containing id:gvcf_path mapping; generated via Picard"
     ped: "pedigree file containing relatedness information; plink format"
@@ -48,79 +50,39 @@ workflow gvcf_to_denovo {
     email: "ahsieh@broadinstitute.org"
   }
 
-  call localize_path{
-    input:
-    script = localize_script,
-    sample_map = sample_map,
-    ped = ped,
-    sample_id = sample_id
-
-  }
 
   call merge_trio_gvcf{
     input:
     sample_id = sample_id,
-    pb_gvcf = localize_path.local_pb_gvcf,
-    pb_idx = localize_path.local_pb_gvcf_index,
-    fa_gvcf = localize_path.local_fa_gvcf,
-    fa_idx = localize_path.local_fa_gvcf_index,
-    mo_gvcf = localize_path.local_mo_gvcf,
-    mo_idx = localize_path.local_mo_gvcf_index,
+    trio_gvcf_array = trio_gvcf_array,
+    trio_gvcf_index_array = trio_gvcf_index_array,
+    trio_readgroup_ids = trio_readgroup_ids,
     ref_fasta = ref_fasta,
-    ref_fasta_index = ref_fasta_index,
-    pb_id = localize_path.new_sample_id,
-    fa_id = localize_path.new_father_id,
-    mo_id = localize_path.new_mother_id
+    ref_fasta_index = ref_fasta_index
   }
 
-  # Step *: split gvcf by chromosome
-  call split_gvcf {
+  call call_denovos {
     input:
-    gvcf = localize_path.local_pb_gvcf,
-    index = localize_path.local_pb_gvcf_index,
-    header = localize_path.header,
-    pb_id = merge_trio_gvcf.out_pb_id,
-    fa_id = merge_trio_gvcf.out_fa_id,
-    mo_id = merge_trio_gvcf.out_mo_id
-  }
+    script = dn_script,
+    sample_id = merge_trio_gvcf.out_pb_id,
+    father_id = merge_trio_gvcf.out_fa_id,
+    mother_id = merge_trio_gvcf.out_mo_id,
 
-  # for each chr vcf, call de novos
-  scatter (idx in range(length(split_gvcf.out))) {
-    
-    call call_denovos {
-      input:
-      script = dn_script,
-      sample_id = split_gvcf.out_pb_id,
-      father_id = split_gvcf.out_fa_id,
-      mother_id = split_gvcf.out_mo_id,
+    gvcf = merge_trio_gvcf.out_gvcf,
 
-      gvcf = split_gvcf.out[idx],
-  
-      pb_min_vaf = pb_min_vaf,
-      par_max_alt = par_max_alt,
-      par_min_dp = par_min_dp,
+    pb_min_vaf = pb_min_vaf,
+    par_max_alt = par_max_alt,
+    par_min_dp = par_min_dp,
 
-      shard = "${idx}"
+    output_suffix = output_suffix
 
-    }
-
-
-  }
-
-  # Step 3: gather shards into final output 
-  call gather_shards {
-    input:
-    shards = call_denovos.outfile,
-    headers = call_denovos.header,
-    prefix = sample_id,
-    suffix = output_suffix
   }
 
 
   
   #Outputs a .txt file containing de novo SNVs
   output {
-    File denovos = gather_shards.out
+    File denovos = call_denovos.out
       
   }
 
@@ -130,107 +92,15 @@ workflow gvcf_to_denovo {
 ###########################################################################
 #Task Definitions
 ###########################################################################
-# Takes sample map as input, generates 3 temporary text files containing the 
-# google bucket path, then copies the gvcfs and tabix indices to the current
-# workflow instance. 
-# NOTE: As this is for calling de novos, requires trio to be present
-# if from the ped no parents are listed, print status message and exit
-task localize_path {
-  File script
-  File sample_map
-  File ped
-  String sample_id
-
-  command{
-    
-    ## PARSE SAMPLE MAP GOOGLE BUCKET PATHS
-    python ${script} -m ${sample_map} -p ${ped} -s ${sample_id}
-    
-    ## LOCALIZE PROBAND
-    PB_PATH=`cat tmp.pb_path.txt`
-    
-    echo "## PROBAND BUCKET PATH: "$PB_PATH
-    
-    gsutil cp $PB_PATH ./tmp.pb.g.vcf.gz
-    gsutil cp $PB_PATH".tbi" ./tmp.pb.g.vcf.gz.tbi
-
-    ## PARSE HEADER LINE
-    zgrep "^#" ./tmp.pb.g.vcf.gz > header.txt
-
-    ## LOCALIZE FATHER AND MOTHER
-    FA_PATH=`cat tmp.fa_path.txt`
-    MO_PATH=`cat tmp.mo_path.txt`
-
-    ## if no father or mother listed in ped
-    if [[ "$FA_PATH" == "." ]] | [[ "$MO_PATH" == "." ]]
-    then
-      touch ./tmp.fa.g.vcf.gz
-      touch ./tmp.fa.g.vcf.gz.tbi
-      echo "## ERROR: MISSING FATHER GVCF PATH"
-
-      touch ./tmp.mo.g.vcf.gz
-      touch ./tmp.mo.g.vcf.gz.tbi
-      echo "## ERROR: MISSING MOTHER GVCF PATH"
-    ## if both parents found
-    else
-      echo "## FATHER BUCKET PATH: "$FA_PATH
-      echo "## MOTHER BUCKET PATH: "$MO_PATH
-
-      gsutil cp $FA_PATH ./tmp.fa.g.vcf.gz
-      gsutil cp $FA_PATH".tbi" ./tmp.fa.g.vcf.gz.tbi
-      
-      gsutil cp $MO_PATH ./tmp.mo.g.vcf.gz
-      gsutil cp $MO_PATH".tbi" ./tmp.mo.g.vcf.gz.tbi
-    fi
-
-    ## parse sample name from vcf path to be passed downstream
-    PB_ID=`basename $PB_PATH '.g.vcf.gz'` 
-    echo $PB_ID > pb_id.txt
-    FA_ID=`basename $FA_PATH '.g.vcf.gz'`
-    echo $FA_ID > fa_id.txt
-    MO_ID=`basename $MO_PATH '.g.vcf.gz'`
-    echo $MO_ID > mo_id.txt
-
-  }
-
-  runtime {
-    docker: "mwalker174/sv-pipeline:mw-00c-stitch-65060a1" 
-    preemptible: 3
-    maxRetries: 3
-  }
-
-  output {
-    File local_pb_gvcf = "tmp.pb.g.vcf.gz"
-    File local_pb_gvcf_index = "tmp.pb.g.vcf.gz.tbi"
-    File local_fa_gvcf = "tmp.fa.g.vcf.gz"
-    File local_fa_gvcf_index = "tmp.fa.g.vcf.gz.tbi"
-    File local_mo_gvcf = "tmp.mo.g.vcf.gz"
-    File local_mo_gvcf_index = "tmp.mo.g.vcf.gz.tbi"
-
-    File header = "header.txt"
-
-    File new_sample_id = "pb_id.txt"
-    File new_father_id = "fa_id.txt"
-    File new_mother_id = "mo_id.txt"
-
-  }
-}
 
 ## merges proband, father, mother gvcfs into trio gvcf
 task merge_trio_gvcf {
   
   String sample_id
 
-  File pb_gvcf
-  File pb_idx
-  File fa_gvcf
-  File fa_idx
-  File mo_gvcf
-  File mo_idx
-
-  File pb_id
-  File fa_id
-  File mo_id
+  Array[File] trio_gvcf_array
+  Array[File] trio_gvcf_index_array
+  Array[String] trio_readgroup_ids
 
   File ref_fasta
   File ref_fasta_index
@@ -239,12 +109,15 @@ task merge_trio_gvcf {
 
   command {
 
-    bcftools merge -g ${ref_fasta} ${pb_gvcf} ${fa_gvcf} ${mo_gvcf} -o ${outfname} -O z -m all
-
-
+    bcftools merge -g ${ref_fasta} -l ${write_lines(trio_gvcf_array)} -o ${outfname} -O z -m all
 
     tabix -p vcf ${outfname}
 
+    cat ${write_lines(trio_readgroup_ids)} > id_list.txt
+    sed -n '1p' id_list.txt = pb_id.txt
+    sed -n '2p' id_list.txt = fa_id.txt
+    sed -n '3p' id_list.txt = mo_id.txt
+    
 
   }
 
@@ -259,57 +132,13 @@ task merge_trio_gvcf {
     File out_gvcf = "${outfname}"
     File out_idx = "${outfname}.tbi"
 
-    File out_pb_id = "${pb_id}"
-    File out_fa_id = "${fa_id}"
-    File out_mo_id = "${mo_id}"
+    File out_pb_id = "pb_id.txt"
+    File out_fa_id = "fa_id.txt"
+    File out_mo_id = "mo_id.txt"
   }
 
 }
 
-## splits vcf by chromosome
-task split_gvcf {
-
-  File gvcf # input gvcf
-  File index # input gvcf index
-  String outprefix = basename(gvcf, '.g.vcf.gz')
-  File header # header from localize_paths step
-
-  File pb_id
-  File fa_id
-  File mo_id
-
-  Int disk_size = 100 # start with 100G
-
-  command {
-
-    # split vcf by chromosome - use tabix -l to get all contig names from tabix index
-    for i in $(tabix -l ${gvcf})
-    do 
-      (cat ${header}; tabix ${gvcf} $i)  > "${outprefix}.$i.vcf"
-    done
-
-    ## get full directory paths
-    readlink -f *.vcf > file_full_paths.txt
-
-  }
-
-  output {
-    Array[File] out = glob("*.vcf") 
-    File filepaths = "file_full_paths.txt"
-
-    File out_pb_id = "${pb_id}"
-    File out_fa_id = "${fa_id}"
-    File out_mo_id = "${mo_id}"
-
-  }
-
-  runtime {
-    docker: "gatksv/sv-base-mini:cbb1fc"
-    disks: "local-disk " + disk_size + " HDD"
-    bootDiskSizeGb: disk_size
-  }
-
-}
 
 #Calls denovos from proband gvcf + parent paths
 task call_denovos {
@@ -325,9 +154,9 @@ task call_denovos {
   Int par_max_alt
   Int par_min_dp
 
-  String shard
+  String output_suffix
   
-  String output_file = "${sample_id}.${shard}.denovo.txt"
+  String output_file = "${sample_id}${output_suffix}"
 
   command {
 
@@ -337,9 +166,6 @@ task call_denovos {
 
     python ${script} -s "$S_ID" -f "$FA_ID" -m "$MO_ID" -g ${gvcf} -x ${pb_min_vaf} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
 
-    #python ${script} -s ${read_string(sample_id)} -f ${read_string(father_id)} -m ${read_string(mother_id)} -g ${gvcf} -x ${pb_min_vaf} -y ${par_max_alt} -z ${par_min_dp} -o ${output_file}
-
-    head -n 1 ${output_file} > "header.txt"
   }
 
   runtime {
@@ -349,42 +175,9 @@ task call_denovos {
   }
 
   output {
-    File outfile = "${output_file}"
-    File header = "header.txt"
-
+    File out = "${output_file}"
   }
 }
 
-#Gathers shards of raw de novo call files into a single call set
-task gather_shards {
 
-  Array[File] shards 
-  Array[File] headers
-  String prefix
-  String suffix
-
-  File head = select_first(headers)
-
-  command {
-
-    set -eou pipefail
-
-    while read file; do
-      cat $file | grep -v "^id" >> "tmp.cat.denovo.raw.txt"
-    done < ${write_lines(shards)};
-
-    (cat ${head}; cat "tmp.cat.denovo.raw.txt") > "${prefix}${suffix}"
-
-  }
-
-  runtime {
-    docker: "gatksv/sv-base-mini:cbb1fc"
-    preemptible: 3
-    maxRetries: 3
-  }
-
-  output {
-    File out = "${prefix}${suffix}"
-  }
-}
 
