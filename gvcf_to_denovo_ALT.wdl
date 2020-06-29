@@ -67,7 +67,10 @@ workflow gvcf_to_denovo {
     mo_gvcf = localize_path.local_mo_gvcf,
     mo_idx = localize_path.local_mo_gvcf_index,
     ref_fasta = ref_fasta,
-    ref_fasta_index = ref_fasta_index
+    ref_fasta_index = ref_fasta_index,
+    pb_id = localize_path.new_sample_id,
+    fa_id = localize_path.new_father_id,
+    mo_id = localize_path.new_mother_id
   }
 
   # Step *: split gvcf by chromosome
@@ -75,7 +78,10 @@ workflow gvcf_to_denovo {
     input:
     gvcf = localize_path.local_pb_gvcf,
     index = localize_path.local_pb_gvcf_index,
-    header = localize_path.header
+    header = localize_path.header,
+    pb_id = merge_trio_gvcf.out_pb_id,
+    fa_id = merge_trio_gvcf.out_fa_id,
+    mo_id = merge_trio_gvcf.out_mo_id
   }
 
   # for each chr vcf, call de novos
@@ -84,9 +90,9 @@ workflow gvcf_to_denovo {
     call call_denovos {
       input:
       script = dn_script,
-      sample_id = localize_path.new_sample_id,
-      father_id = localize_path.new_father_id,
-      mother_id = localize_path.new_mother_id,
+      sample_id = split_gvcf.out_pb_id,
+      father_id = split_gvcf.out_fa_id,
+      mother_id = split_gvcf.out_mo_id,
 
       gvcf = split_gvcf.out[idx],
   
@@ -222,6 +228,10 @@ task merge_trio_gvcf {
   File mo_gvcf
   File mo_idx
 
+  File pb_id
+  File fa_id
+  File mo_id
+
   File ref_fasta
   File ref_fasta_index
 
@@ -229,7 +239,8 @@ task merge_trio_gvcf {
 
   command {
 
-    bcftools merge -g ${ref_fasta} "tmp.pb.no_PL.g.vcf.gz" "tmp.fa.no_PL.g.vcf.gz" "tmp.mo.no_PL.g.vcf.gz" -o ${outfname} -O z -m all
+    bcftools merge -g ${ref_fasta} ${pb_gvcf} ${fa_gvcf} ${mo_gvcf} -o ${outfname} -O z -m all
+
 
 
     tabix -p vcf ${outfname}
@@ -239,14 +250,18 @@ task merge_trio_gvcf {
 
   runtime {
     docker: "gatksv/sv-base-mini:cbb1fc"
-    memory: "8 GiB"
-    preemptible_tries: 3
-    max_retries: 3
+    memory: "8G"
+    preemptible: 3
+    maxRetries: 3
   }
 
   output {
     File out_gvcf = "${outfname}"
     File out_idx = "${outfname}.tbi"
+
+    File out_pb_id = "${pb_id}"
+    File out_fa_id = "${fa_id}"
+    File out_mo_id = "${mo_id}"
   }
 
 }
@@ -258,6 +273,10 @@ task split_gvcf {
   File index # input gvcf index
   String outprefix = basename(gvcf, '.g.vcf.gz')
   File header # header from localize_paths step
+
+  File pb_id
+  File fa_id
+  File mo_id
 
   Int disk_size = 100 # start with 100G
 
@@ -277,6 +296,10 @@ task split_gvcf {
   output {
     Array[File] out = glob("*.vcf") 
     File filepaths = "file_full_paths.txt"
+
+    File out_pb_id = "${pb_id}"
+    File out_fa_id = "${fa_id}"
+    File out_mo_id = "${mo_id}"
 
   }
 
