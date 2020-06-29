@@ -28,13 +28,6 @@ import subprocess
 import os
 import gzip
 import io
-import psutil
-
-## check memory usage
-process = psutil.Process(os.getpid())
-print("START")
-print(process.memory_info()[0])
-print("#")
 
 
 ####################################################################################################
@@ -355,8 +348,4 @@ with open(sample_gvcf, 'r') as f:
 
 outf.close()
 
-print("#")
-print("END")
-print(process.memory_info()[0])
-print("#")
 
